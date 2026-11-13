@@ -1,0 +1,105 @@
+space-health/
+│
+├── Cargo.toml
+├── Cargo.lock
+├── .env
+├── migrations/
+│   ├── 001_create_astronautas.sql
+│   ├── 002_create_missoes.sql
+│   ├── 003_create_telemetria.sql
+│   ├── 004_create_ambiente.sql
+│   ├── 005_create_exames.sql
+│   └── 006_create_alertas.sql
+│
+├── src/
+│   │
+│   ├── main.rs
+│   ├── lib.rs
+│   │
+│   ├── domain/
+│   │   ├── astronaut/
+│   │   │   ├── entity.rs
+│   │   │   └── repository.rs
+│   │   │
+│   │   ├── mission/
+│   │   │   ├── entity.rs
+│   │   │   └── repository.rs
+│   │   │
+│   │   ├── measurement/
+│   │   │   ├── entity.rs
+│   │   │   └── repository.rs
+│   │   │
+│   │   ├── evaluation/
+│   │   │   ├── entity.rs
+│   │   │   └── rules.rs
+│   │   │
+│   │   ├── alert/
+│   │   │   ├── entity.rs
+│   │   │   └── repository.rs
+│   │   │
+│   │   └── protocol/
+│   │       └── entity.rs
+│   │
+│   ├── application/
+│   │   ├── collection/
+│   │   │   └── collect_measurement.rs
+│   │   │
+│   │   ├── historical_analysis/
+│   │   │   └── get_historical_data.rs
+│   │   │
+│   │   ├── evaluation/
+│   │   │   ├── process_assessment.rs
+│   │   │   └── build_context.rs
+│   │   │
+│   │   ├── alert_management/
+│   │   │   └── create_alert.rs
+│   │   │
+│   │   └── copilot/
+│   │       └── generate_guidance.rs
+│   │
+│   ├── analysis/
+│   │   ├── baseline.rs
+│   │   ├── variation.rs
+│   │   ├── statistics.rs
+│   │   ├── trend.rs
+│   │   ├── persistence.rs
+│   │   ├── environmental_exposure.rs
+│   │   └── data_quality.rs
+│   │
+│   ├── infrastructure/
+│   │   ├── database/
+│   │   │   ├── sqlite.rs
+│   │   │   └── repositories/
+│   │   │
+│   │   ├── ai/
+│   │   │   ├── client.rs
+│   │   │   └── models.rs
+│   │   │
+│   │   ├── rag/
+│   │   │   ├── retriever.rs
+│   │   │   └── document_store.rs
+│   │   │
+│   │   ├── sensors/
+│   │   │   └── sensor_adapter.rs
+│   │   │
+│   │   └── notifications/
+│   │       └── notification_service.rs
+│   │
+│   ├── interfaces/
+│   │   ├── http/
+│   │   │   ├── routes.rs
+│   │   │   ├── handlers/
+│   │   │   └── dto/
+│   │   │
+│   │   └── middleware/
+│   │
+│   ├── config/
+│   │   └── settings.rs
+│   │
+│   └── shared/
+│       ├── errors.rs
+│       └── types.rs
+│
+└── tests/
+    ├── integration/
+    └── fixtures/
