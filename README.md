@@ -1,5 +1,6 @@
 # Kalvis-
 NASA Space Apps Challenge project: smart health assistant for medical triage, biometric monitoring, and preliminary diagnostics using NLP and data analytics.
+
 Alterações concluídas puramente de back-end:
 
 DOMAIN: infrastructure/database/
@@ -17,3 +18,7 @@ Alterações a fazer:
 design das demais telas
 front-end completo
 offline-first
+
+A implementar:
+
+Cuidados de baseline pra radiação, perda de densidade óssea, gravidade, alimentação, pressão, micróbio, implementar algo que não o preocupe de ficar distante da terra
