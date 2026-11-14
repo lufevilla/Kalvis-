@@ -282,6 +282,11 @@ pub trait MeasurementRepository: Send + Sync {
         inicio_utc: Option<&str>,
         fim_utc: Option<&str>,
     ) -> Result<Vec<ResumoAmbientalModulo>, sqlx::Error>;
+    
+    async fn list_daily_logs(
+        &self, astronauta_id: &str, inicio_utc: Option<&str>, fim_utc: Option<&str>,
+        limit: i64, offset: i64,
+    ) -> Result<Vec<RegistroDiario>, sqlx::Error>;
 
     // ===== Painel =====
 

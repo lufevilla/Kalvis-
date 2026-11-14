@@ -1,1 +1,39 @@
-back-end/target
+# Rust (Cargo)
+back-end/target/
+back-end/**/*.rs.bk
+back-end/*.pdb
+back-end/**/mutants.out*/
+back-end/rustc-ice-*.txt
+
+# Flutter/Dart
+front_end/.dart_tool/
+front_end/.flutter-plugins
+front_end/.flutter-plugins-dependencies
+front_end/.packages
+front_end/.pub-preload-cache/
+front_end/.pub/
+front_end/build/
+front_end/**/doc/api/
+front_end/**/generated_plugin_registrant.dart
+front_end/test/
+
+# Android/iOS/Desktop
+front_end/android/
+front_end/android/local.properties
+front_end/ios/
+front_end/ios/Pods/
+front_end/macos/
+front_end/linux/
+front_end/windows/
+front_end/web/
+
+# General/IDE
+.idea/
+.vscode/
+*.log
+*.class
+*.pyc
+*.swp
+.DS_Store
+*.metadata
+*.gitignore

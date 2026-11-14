@@ -1,83 +1,153 @@
 /*
-PONTE ENTRE AS ANALISES E O REPOSITORIO DE DADOS
-
-AS FUNCOES DE ANALISE RECEBEM UM `MeasurementRepository` E BUSCAM A SI
-PROPRIAS OS DADOS DE QUE PRECISAM (SERIES TEMPORAIS, PRESENCAS, AMBIENTE).
-A LOGICA DE CALCULO CONTINUA NAS FUNCOES PURAS DE CADA MODULO.
+PONTE ENTRE AS ANÁLISES E O REPOSITÓRIO DE DADOS.
+ÚNICO DONO DOS NOMES DE INDICADORES/FASES E DE TODAS AS COLETAS.
 */
 
 use chrono::{DateTime, Utc};
 
-use crate::domain::repositories::measurement_repository::{MeasurementRepository, PontoSerie};
+use crate::domain::repositories::measurement_repository::MeasurementRepository;
 
-/// Limite padrão de amostras buscadas por série temporal. As análises
-/// operam sobre janelas completas, não paginadas.
+/// Limite por coleta. Ao ser ultrapassado, a coleta FALHA (nunca trunca em silêncio).
 pub const LIMITE_PADRAO_SERIE: i64 = 100_000;
 
-/// Traduz o nome do indicador (como gravado em `baseline_fisiologico.indicador`)
-/// para o nome da coluna correspondente em `telemetria_fisiologica`, que é o
-/// que as queries de série temporal aceitam.
-pub fn coluna_do_indicador(indicador: &str) -> Option<&'static str> {
-    match indicador {
-        "FREQUENCIA_CARDIACA" => Some("frequencia_cardiaca_bpm"),
-        "SPO2" => Some("spo2_percentual"),
-        "TEMPERATURA_CORPORAL" => Some("temperatura_corporal_c"),
-        "TEMPERATURA_PELE" => Some("temperatura_pele_c"),
-        "TAXA_RESPIRATORIA" => Some("taxa_respiratoria_rpm"),
-        "HRV" => Some("hrv_ms"),
-        "PRESSAO_SISTOLICA" => Some("pressao_sistolica_mmhg"),
-        "PRESSAO_DIASTOLICA" => Some("pressao_diastolica_mmhg"),
-        "GLICOSE" => Some("glicose_mg_dl"),
-        _ => None,
+// ============================================================
+// INDICADORES E FASES (nomes como gravados no banco)
+// ============================================================
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Indicador {
+    FrequenciaCardiaca,
+    Spo2,
+    TemperaturaCorporal,
+    TemperaturaPele,
+    TaxaRespiratoria,
+    Hrv,
+    PressaoSistolica,
+    PressaoDiastolica,
+    Glicose,
+    HorasSono,
+}
+
+impl Indicador {
+    pub const TODOS: [Indicador; 10] = [
+        Self::FrequenciaCardiaca, Self::Spo2, Self::TemperaturaCorporal,
+        Self::TemperaturaPele, Self::TaxaRespiratoria, Self::Hrv,
+        Self::PressaoSistolica, Self::PressaoDiastolica, Self::Glicose,
+        Self::HorasSono,
+    ];
+
+    pub fn nome(self) -> &'static str {
+        match self {
+            Self::FrequenciaCardiaca => "FREQUENCIA_CARDIACA",
+            Self::Spo2 => "SPO2",
+            Self::TemperaturaCorporal => "TEMPERATURA_CORPORAL",
+            Self::TemperaturaPele => "TEMPERATURA_PELE",
+            Self::TaxaRespiratoria => "TAXA_RESPIRATORIA",
+            Self::Hrv => "HRV",
+            Self::PressaoSistolica => "PRESSAO_SISTOLICA",
+            Self::PressaoDiastolica => "PRESSAO_DIASTOLICA",
+            Self::Glicose => "GLICOSE",
+            Self::HorasSono => "HORAS_SONO",
+        }
+    }
+
+    pub fn from_nome(nome: &str) -> Option<Self> {
+        Self::TODOS.into_iter().find(|i| i.nome() == nome)
+    }
+
+    /// Coluna em `telemetria_fisiologica`. `None` = vem de outra tabela.
+    fn coluna_telemetria(self) -> Option<&'static str> {
+        match self {
+            Self::FrequenciaCardiaca => Some("frequencia_cardiaca_bpm"),
+            Self::Spo2 => Some("spo2_percentual"),
+            Self::TemperaturaCorporal => Some("temperatura_corporal_c"),
+            Self::TemperaturaPele => Some("temperatura_pele_c"),
+            Self::TaxaRespiratoria => Some("taxa_respiratoria_rpm"),
+            Self::Hrv => Some("hrv_ms"),
+            Self::PressaoSistolica => Some("pressao_sistolica_mmhg"),
+            Self::PressaoDiastolica => Some("pressao_diastolica_mmhg"),
+            Self::Glicose => Some("glicose_mg_dl"),
+            Self::HorasSono => None,
+        }
     }
 }
 
-/// Busca a série temporal `(momento_utc, valor)` de um indicador fisiológico
-/// a partir do nome oficial do indicador. Indicador desconhecido (ou sem
-/// série, como `HORAS_SONO`) devolve uma série vazia.
-pub async fn buscar_serie_do_indicador(
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FaseMissao {
+    PreVoo,
+}
+
+impl FaseMissao {
+    pub fn nome(self) -> &'static str {
+        match self {
+            Self::PreVoo => "PRE_VOO",
+        }
+    }
+}
+
+// ============================================================
+// COLETAS
+// ============================================================
+
+/// Amostra bruta, sem nenhum filtro: o `data_quality` decide o que é válido.
+#[derive(Debug, Clone)]
+pub struct AmostraBruta {
+    pub momento_utc: String,
+    pub valor: Option<f64>,
+}
+
+fn verificar_limite(qtd: usize) -> Result<(), sqlx::Error> {
+    if qtd as i64 > LIMITE_PADRAO_SERIE {
+        return Err(sqlx::Error::Protocol(format!(
+            "série excede o limite de {LIMITE_PADRAO_SERIE} amostras"
+        )));
+    }
+    Ok(())
+}
+
+/// Série bruta de qualquer indicador (telemetria ou registro diário).
+pub async fn buscar_serie_bruta(
     repo: &dyn MeasurementRepository,
     astronauta_id: &str,
     missao_id: Option<&str>,
-    indicador: &str,
+    indicador: Indicador,
     inicio_utc: Option<&str>,
     fim_utc: Option<&str>,
-) -> Result<Vec<PontoSerie>, sqlx::Error> {
-    let Some(coluna) = coluna_do_indicador(indicador) else {
-        return Ok(Vec::new());
+) -> Result<Vec<AmostraBruta>, sqlx::Error> {
+    // Busca limite + 1 para detectar truncamento.
+    let limite = LIMITE_PADRAO_SERIE + 1;
+
+    let serie: Vec<AmostraBruta> = match indicador.coluna_telemetria() {
+        Some(coluna) => repo
+            .list_indicator_time_series(
+                astronauta_id, missao_id, coluna, inicio_utc, fim_utc, limite, 0,
+            )
+            .await?
+            .into_iter()
+            .map(|p| AmostraBruta { momento_utc: p.momento_utc, valor: p.valor })
+            .collect(),
+
+        // Registro diário não tem missão associada.
+        None => repo
+            .list_daily_logs(astronauta_id, inicio_utc, fim_utc, limite, 0)
+            .await?
+            .into_iter()
+            .filter(|r| r.deleted_at.is_none())
+            .map(|r| AmostraBruta { momento_utc: r.data_registro, valor: r.horas_sono_total })
+            .collect(),
     };
 
-    repo.list_indicator_time_series(
-        astronauta_id,
-        missao_id,
-        coluna,
-        inicio_utc,
-        fim_utc,
-        LIMITE_PADRAO_SERIE,
-        0,
-    )
-    .await
+    verificar_limite(serie.len())?;
+    Ok(serie)
 }
 
-/// Busca apenas os valores (na ordem temporal) de um indicador fisiológico.
-pub async fn buscar_valores_do_indicador(
-    repo: &dyn MeasurementRepository,
-    astronauta_id: &str,
-    missao_id: Option<&str>,
-    indicador: &str,
-    inicio_utc: Option<&str>,
-    fim_utc: Option<&str>,
-) -> Result<Vec<f64>, sqlx::Error> {
-    let serie =
-        buscar_serie_do_indicador(repo, astronauta_id, missao_id, indicador, inicio_utc, fim_utc)
-            .await?;
-
-    Ok(serie.into_iter().map(|ponto| ponto.valor).collect())
-}
-
-/// Converte um timestamp ISO 8601 em `DateTime<Utc>`.
+/// Converte um timestamp ISO 8601 (ou uma data `YYYY-MM-DD`, à meia-noite UTC).
 pub fn parse_momento(value: &str) -> Option<DateTime<Utc>> {
-    DateTime::parse_from_rfc3339(value)
+    if let Ok(dt) = DateTime::parse_from_rfc3339(value) {
+        return Some(dt.with_timezone(&Utc));
+    }
+    chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d")
         .ok()
-        .map(|dt| dt.with_timezone(&Utc))
+        .and_then(|d| d.and_hms_opt(0, 0, 0))
+        .map(|dt| dt.and_utc())
 }
