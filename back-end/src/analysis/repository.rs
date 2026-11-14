@@ -30,9 +30,15 @@ pub enum Indicador {
 
 impl Indicador {
     pub const TODOS: [Indicador; 10] = [
-        Self::FrequenciaCardiaca, Self::Spo2, Self::TemperaturaCorporal,
-        Self::TemperaturaPele, Self::TaxaRespiratoria, Self::Hrv,
-        Self::PressaoSistolica, Self::PressaoDiastolica, Self::Glicose,
+        Self::FrequenciaCardiaca,
+        Self::Spo2,
+        Self::TemperaturaCorporal,
+        Self::TemperaturaPele,
+        Self::TaxaRespiratoria,
+        Self::Hrv,
+        Self::PressaoSistolica,
+        Self::PressaoDiastolica,
+        Self::Glicose,
         Self::HorasSono,
     ];
 
@@ -75,12 +81,28 @@ impl Indicador {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FaseMissao {
     PreVoo,
+    EmVoo,
+    PosVoo,
 }
 
 impl FaseMissao {
+    /// Nome como gravado no banco (`baseline_fisiologico.fase_missao`,
+    /// CHECK em ('PRE_VOO', 'EM_VOO', 'POS_VOO')).
     pub fn nome(self) -> &'static str {
         match self {
             Self::PreVoo => "PRE_VOO",
+            Self::EmVoo => "EM_VOO",
+            Self::PosVoo => "POS_VOO",
+        }
+    }
+
+    /// Interpreta o valor gravado no banco. Nome desconhecido → `None`.
+    pub fn from_nome(nome: &str) -> Option<Self> {
+        match nome {
+            "PRE_VOO" => Some(Self::PreVoo),
+            "EM_VOO" => Some(Self::EmVoo),
+            "POS_VOO" => Some(Self::PosVoo),
+            _ => None,
         }
     }
 }
@@ -120,11 +142,20 @@ pub async fn buscar_serie_bruta(
     let serie: Vec<AmostraBruta> = match indicador.coluna_telemetria() {
         Some(coluna) => repo
             .list_indicator_time_series(
-                astronauta_id, missao_id, coluna, inicio_utc, fim_utc, limite, 0,
+                astronauta_id,
+                missao_id,
+                coluna,
+                inicio_utc,
+                fim_utc,
+                limite,
+                0,
             )
             .await?
             .into_iter()
-            .map(|p| AmostraBruta { momento_utc: p.momento_utc, valor: p.valor })
+            .map(|p| AmostraBruta {
+                momento_utc: p.momento_utc,
+                valor: Some(p.valor),
+            })
             .collect(),
 
         // Registro diário não tem missão associada.
@@ -133,12 +164,69 @@ pub async fn buscar_serie_bruta(
             .await?
             .into_iter()
             .filter(|r| r.deleted_at.is_none())
-            .map(|r| AmostraBruta { momento_utc: r.data_registro, valor: r.horas_sono_total })
+            .map(|r| AmostraBruta {
+                momento_utc: r.data_registro,
+                valor: r.horas_sono_total,
+            })
             .collect(),
     };
 
     verificar_limite(serie.len())?;
     Ok(serie)
+}
+
+/// Série temporal de um indicador identificado pelo NOME gravado no banco.
+/// Nome desconhecido devolve série vazia (os módulos de análise tratam
+/// série vazia como "não analisável", nunca como erro).
+pub async fn buscar_serie_do_indicador(
+    repo: &dyn MeasurementRepository,
+    astronauta_id: &str,
+    missao_id: Option<&str>,
+    indicador: &str,
+    inicio_utc: Option<&str>,
+    fim_utc: Option<&str>,
+) -> Result<Vec<AmostraBruta>, sqlx::Error> {
+    match Indicador::from_nome(indicador) {
+        Some(ind) => {
+            buscar_serie_bruta(repo, astronauta_id, missao_id, ind, inicio_utc, fim_utc).await
+        }
+        None => Ok(Vec::new()),
+    }
+}
+
+/// Pares `(momento, valor)` de um indicador, já convertidos e ordenados
+/// cronologicamente. Amostras sem valor, com timestamp inválido ou com
+/// valor não finito são descartadas (a validação fina continua sendo
+/// responsabilidade do `data_quality`). Nome desconhecido → vazio.
+pub async fn buscar_valores_do_indicador(
+    repo: &dyn MeasurementRepository,
+    astronauta_id: &str,
+    missao_id: Option<&str>,
+    indicador: &str,
+    inicio_utc: Option<&str>,
+    fim_utc: Option<&str>,
+) -> Result<Vec<(DateTime<Utc>, f64)>, sqlx::Error> {
+    let serie = buscar_serie_do_indicador(
+        repo,
+        astronauta_id,
+        missao_id,
+        indicador,
+        inicio_utc,
+        fim_utc,
+    )
+    .await?;
+
+    let mut pares: Vec<(DateTime<Utc>, f64)> = serie
+        .iter()
+        .filter_map(|amostra| {
+            let momento = parse_momento(&amostra.momento_utc)?;
+            let valor = amostra.valor?;
+            valor.is_finite().then_some((momento, valor))
+        })
+        .collect();
+
+    pares.sort_by_key(|&(momento, _)| momento);
+    Ok(pares)
 }
 
 /// Converte um timestamp ISO 8601 (ou uma data `YYYY-MM-DD`, à meia-noite UTC).

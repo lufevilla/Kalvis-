@@ -4,24 +4,31 @@
 //! dataset mínimo, e exercita as variações `*_de_repositorio` de cada
 //! módulo de análise.
 
-use back_end::analysis::baseline::{
-    comparar_sono_com_pre_voo_de_repositorio, comparar_telemetria_com_pre_voo_de_repositorio,
-    calcular_baseline_pre_voo_de_repositorio, INDICADOR_FREQUENCIA_CARDIACA, INDICADOR_HORAS_SONO,
-};
-use back_end::analysis::data_quality::{evaluate_data_quality_de_repositorio, DataQualityConfig};
+use back_end::analysis::baseline::{BaselineConfig, calcular_baseline_de_repositorio};
+use back_end::analysis::data_quality::{DataQualityConfig, evaluate_data_quality_de_repositorio};
 use back_end::analysis::environmental_exposure::{
-    calculate_environmental_exposure_de_repositorio, EnvironmentalThresholds,
+    EnvironmentalThresholds, calculate_environmental_exposure_de_repositorio,
 };
-use back_end::analysis::persistence::evaluate_persistence_de_repositorio;
-use back_end::analysis::statistics::{
-    median_de_repositorio, moving_average_de_repositorio, pearson_correlation_de_repositorio,
-    standard_deviation_de_repositorio,
+use back_end::analysis::persistence::{
+    CriterioAlteracao, PersistenceConfig, evaluate_persistence_de_repositorio,
 };
-use back_end::analysis::trend::analyze_trend_de_repositorio;
-use back_end::domain::repositories::measurement_repository::MeasurementRepository;
+use back_end::analysis::repository::{FaseMissao, Indicador};
+use back_end::analysis::trend::{TrendConfig, analyze_trend_de_repositorio};
+use back_end::analysis::variation::{
+    ContextoAtual, VariationConfig, calcular_variacao_de_repositorio,
+};
 use back_end::infrastructure::database::repositories::measurement_repository::SqliteMeasurementRepository;
-use sqlx::sqlite::SqlitePoolOptions;
+use chrono::{DateTime, Utc};
 use sqlx::SqlitePool;
+use sqlx::sqlite::SqlitePoolOptions;
+
+const INDICADOR_FC: &str = "FREQUENCIA_CARDIACA";
+
+fn ts(valor: &str) -> DateTime<Utc> {
+    DateTime::parse_from_rfc3339(valor)
+        .unwrap()
+        .with_timezone(&Utc)
+}
 
 async fn pool_com_dataset() -> SqlitePool {
     let pool = SqlitePoolOptions::new()
@@ -30,10 +37,17 @@ async fn pool_com_dataset() -> SqlitePool {
         .await
         .expect("conectar");
 
-    sqlx::migrate!("./migrations").run(&pool).await.expect("migrations");
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .expect("migrations");
 
-    sqlx::query("INSERT INTO astronautas (id, nome, data_nascimento) VALUES ('A1', 'Kalvis', '1990-05-01')")
-        .execute(&pool).await.unwrap();
+    sqlx::query(
+        "INSERT INTO astronautas (id, nome, data_nascimento) VALUES ('A1', 'Kalvis', '1990-05-01')",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
 
     sqlx::query("INSERT INTO missoes (id, nome_missao, data_lancamento) VALUES ('M1', 'Artemis III', '2025-01-10T00:00:00Z')")
         .execute(&pool).await.unwrap();
@@ -41,8 +55,12 @@ async fn pool_com_dataset() -> SqlitePool {
     sqlx::query("INSERT INTO participacao_missao (id, astronauta_id, missao_id, funcao) VALUES ('PM1', 'A1', 'M1', 'COMANDANTE')")
         .execute(&pool).await.unwrap();
 
-    sqlx::query("INSERT INTO modulos_nave (id, missao_id, nome) VALUES ('MOD1', 'M1', 'Habitat A')")
-        .execute(&pool).await.unwrap();
+    sqlx::query(
+        "INSERT INTO modulos_nave (id, missao_id, nome) VALUES ('MOD1', 'M1', 'Habitat A')",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
 
     sqlx::query(
         "INSERT INTO telemetria_fisiologica
@@ -52,22 +70,19 @@ async fn pool_com_dataset() -> SqlitePool {
             ('T1', 'A1', 'M1', '2025-01-15T08:00:00Z', 70.0, 98.0, 36.8, 'WEARABLE'),
             ('T2', 'A1', 'M1', '2025-01-15T12:00:00Z', 75.0, 97.0, NULL, 'WEARABLE'),
             ('T3', 'A1', 'M1', '2025-01-16T08:00:00Z', 72.0, NULL, NULL, 'WEARABLE')",
-    ).execute(&pool).await.unwrap();
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
 
     sqlx::query(
         "INSERT INTO registros_diarios
             (id, astronauta_id, data_registro, horas_sono_total)
          VALUES ('R1', 'A1', '2025-01-15', 7.5)",
-    ).execute(&pool).await.unwrap();
-
-    // Baselines pré-voô com os nomes oficiais de indicador (maiúsculas).
-    sqlx::query(
-        "INSERT INTO baseline_fisiologico
-            (id, astronauta_id, indicador, fase_missao, missao_id, valor_referencia,
-             desvio_padrao, quantidade_amostras, atualizado_em)
-         VALUES ('B1', 'A1', 'FREQUENCIA_CARDIACA', 'PRE_VOO', 'M1', 70.0, 5.0, 50, '2025-01-01T00:00:00Z'),
-                ('B2', 'A1', 'HORAS_SONO', 'PRE_VOO', NULL, 8.0, 1.0, 50, '2025-01-01T00:00:00Z')",
-    ).execute(&pool).await.unwrap();
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
 
     sqlx::query(
         "INSERT INTO ambiente_nave (id, modulo_id, timestamp_utc, co2_ppm, radiacao_msv_hora, temperatura_cabine_c, pressao_kpa)
@@ -82,27 +97,64 @@ async fn pool_com_dataset() -> SqlitePool {
 }
 
 #[tokio::test]
-async fn baseline_pre_voo_calculado_da_serie_do_repositorio() {
+async fn qualidade_do_dado_da_serie_do_repositorio() {
     let pool = pool_com_dataset().await;
     let repo = SqliteMeasurementRepository::new(pool);
 
-    let baseline = calcular_baseline_pre_voo_de_repositorio(
+    let qualidade = evaluate_data_quality_de_repositorio(
         &repo,
         "A1",
         Some("M1"),
-        INDICADOR_FREQUENCIA_CARDIACA,
+        Indicador::FrequenciaCardiaca,
         None,
-        None,
-        3,
-        "2025-01-17T00:00:00Z",
+        &DataQualityConfig::padrao_para(Indicador::FrequenciaCardiaca),
     )
     .await
-    .unwrap()
-    .expect("baseline com amostras suficientes");
+    .unwrap();
+
+    // 3 amostras válidas; as lacunas (4h e 20h) ficam registradas sem
+    // rejeitar as amostras posteriores.
+    assert_eq!(qualidade.total_samples, 3);
+    assert_eq!(qualidade.valid_samples, 3);
+    assert!(qualidade.acceptable_quality);
+    assert_eq!(qualidade.temporal_gaps, 2);
+    assert_eq!(qualidade.largest_gap_seconds, 20 * 3600);
+}
+
+#[tokio::test]
+async fn baseline_calculado_da_serie_do_repositorio() {
+    let pool = pool_com_dataset().await;
+    let repo = SqliteMeasurementRepository::new(pool);
+
+    let janela = back_end::analysis::data_quality::JanelaTempo {
+        inicio: ts("2025-01-15T00:00:00Z"),
+        fim: ts("2025-01-17T00:00:00Z"),
+    };
+
+    let baseline = calcular_baseline_de_repositorio(
+        &repo,
+        "A1",
+        Some("M1"),
+        Indicador::FrequenciaCardiaca,
+        FaseMissao::PreVoo,
+        janela,
+        &DataQualityConfig::padrao_para(Indicador::FrequenciaCardiaca),
+        &BaselineConfig {
+            k_mad: 3.0,
+            minimum_samples_after_filter: 3,
+        },
+        ts("2025-01-17T00:00:00Z"),
+    )
+    .await
+    .unwrap();
 
     assert_eq!(baseline.fase_missao, "PRE_VOO");
+    assert_eq!(baseline.missao_id.as_deref(), Some("M1"));
+    assert_eq!(baseline.astronauta_id, "A1");
+    assert_eq!(baseline.indicador, INDICADOR_FC);
     assert_eq!(baseline.quantidade_amostras, Some(3));
     assert!((baseline.valor_referencia - (70.0 + 75.0 + 72.0) / 3.0).abs() < 1e-9);
+    assert!(baseline.desvio_padrao.unwrap() > 0.0);
     assert_eq!(
         baseline.periodo_inicio.as_deref(),
         Some("2025-01-15T08:00:00Z")
@@ -111,116 +163,114 @@ async fn baseline_pre_voo_calculado_da_serie_do_repositorio() {
         baseline.periodo_fim.as_deref(),
         Some("2025-01-16T08:00:00Z")
     );
+}
 
-    // Amostras insuficientes -> None.
-    let insuficiente = calcular_baseline_pre_voo_de_repositorio(
+#[tokio::test]
+async fn variacao_usa_o_baseline_individual() {
+    let pool = pool_com_dataset().await;
+    let repo = SqliteMeasurementRepository::new(pool);
+
+    // Baseline calculado na própria série: média 72.33, dp > 0.
+    let janela = back_end::analysis::data_quality::JanelaTempo {
+        inicio: ts("2025-01-15T00:00:00Z"),
+        fim: ts("2025-01-17T00:00:00Z"),
+    };
+    let baseline = calcular_baseline_de_repositorio(
         &repo,
         "A1",
         Some("M1"),
-        INDICADOR_FREQUENCIA_CARDIACA,
-        None,
-        None,
-        10,
-        "2025-01-17T00:00:00Z",
+        Indicador::FrequenciaCardiaca,
+        FaseMissao::PreVoo,
+        janela,
+        &DataQualityConfig::padrao_para(Indicador::FrequenciaCardiaca),
+        &BaselineConfig {
+            k_mad: 3.0,
+            minimum_samples_after_filter: 3,
+        },
+        ts("2025-01-17T00:00:00Z"),
     )
     .await
     .unwrap();
-    assert!(insuficiente.is_none());
 
-    // Indicador sem série (ou desconhecido) -> None.
-    let vazio = calcular_baseline_pre_voo_de_repositorio(
+    // Janela atual igual à do baseline → z = 0 → Normal.
+    let resultado = calcular_variacao_de_repositorio(
         &repo,
-        "A1",
+        ContextoAtual {
+            astronauta_id: "A1",
+            missao_id: Some("M1"),
+            fase_missao: Some("PRE_VOO"),
+            agora: ts("2025-01-17T00:00:00Z"),
+        },
         Some("M1"),
-        "INDICADOR_INEXISTENTE",
-        None,
-        None,
-        1,
-        "2025-01-17T00:00:00Z",
+        Indicador::FrequenciaCardiaca,
+        &baseline,
+        janela,
+        &DataQualityConfig::padrao_para(Indicador::FrequenciaCardiaca),
+        &VariationConfig {
+            z_atencao: 2.0,
+            z_critico: 3.0,
+            max_idade_baseline: Some(chrono::Duration::days(30)),
+        },
     )
     .await
     .unwrap();
-    assert!(vazio.is_none());
-}
 
-#[tokio::test]
-async fn comparacao_da_telemetria_usa_baselines_do_repositorio() {
-    let pool = pool_com_dataset().await;
-    let repo = SqliteMeasurementRepository::new(pool);
-
-    let telemetria = repo
-        .find_telemetry_by_id("T2")
-        .await
-        .unwrap()
-        .expect("telemetria T2");
-
-    let comparacoes = comparar_telemetria_com_pre_voo_de_repositorio(&repo, &telemetria)
-        .await
-        .unwrap();
-
-    let frequencia = comparacoes
-        .iter()
-        .find(|c| c.indicador == INDICADOR_FREQUENCIA_CARDIACA)
-        .expect("comparação de frequência cardíaca");
-
-    assert_eq!(frequencia.valor_atual, 75.0);
-    assert_eq!(frequencia.valor_referencia_pre_voo, 70.0);
-    assert_eq!(frequencia.diferenca, 5.0);
-    assert_eq!(frequencia.z_score, Some(1.0));
+    assert_eq!(resultado.quantidade_amostras, 3);
+    assert!(resultado.z_score.unwrap().abs() < 1e-9);
     assert_eq!(
-        comparacoes
-            .iter()
-            .find(|c| c.indicador == INDICADOR_FREQUENCIA_CARDIACA)
-            .unwrap()
-            .direcao,
-        back_end::analysis::baseline::DesvioDirecao::Acima
+        resultado.nivel,
+        back_end::analysis::variation::NivelVariacao::Normal
     );
+    assert_eq!(resultado.baseline_desatualizado, Some(false));
 
-    // spo2 não tem baseline pré-voô no dataset: não entra na comparação.
-    assert!(!comparacoes.iter().any(|c| c.indicador == "SPO2"));
+    // Baseline de outro astronauta → erro de contexto.
+    let mut alheio = baseline.clone();
+    alheio.astronauta_id = "A2".to_string();
+    let erro = calcular_variacao_de_repositorio(
+        &repo,
+        ContextoAtual {
+            astronauta_id: "A1",
+            missao_id: Some("M1"),
+            fase_missao: None,
+            agora: ts("2025-01-17T00:00:00Z"),
+        },
+        Some("M1"),
+        Indicador::FrequenciaCardiaca,
+        &alheio,
+        janela,
+        &DataQualityConfig::padrao_para(Indicador::FrequenciaCardiaca),
+        &VariationConfig {
+            z_atencao: 2.0,
+            z_critico: 3.0,
+            max_idade_baseline: None,
+        },
+    )
+    .await
+    .unwrap_err();
+
+    assert!(matches!(
+        erro,
+        back_end::analysis::variation::VariacaoErro::ContextoDivergente {
+            campo: "astronauta_id",
+            ..
+        }
+    ));
 }
 
 #[tokio::test]
-async fn comparacao_do_sono_busca_registro_e_baseline() {
+async fn tendencia_da_serie_do_repositorio() {
     let pool = pool_com_dataset().await;
     let repo = SqliteMeasurementRepository::new(pool);
 
-    let comparacao = comparar_sono_com_pre_voo_de_repositorio(&repo, "R1")
-        .await
-        .unwrap()
-        .expect("comparação de sono");
-
-    assert_eq!(comparacao.indicador, INDICADOR_HORAS_SONO);
-    assert_eq!(comparacao.valor_atual, 7.5);
-    assert_eq!(comparacao.valor_referencia_pre_voo, 8.0);
-    assert_eq!(comparacao.diferenca, -0.5);
-    assert_eq!(comparacao.z_score, Some(-0.5));
-    assert_eq!(
-        comparacao.direcao,
-        back_end::analysis::baseline::DesvioDirecao::Abaixo
-    );
-
-    // Registro inexistente -> None.
-    assert!(comparar_sono_com_pre_voo_de_repositorio(&repo, "inexistente")
-        .await
-        .unwrap()
-        .is_none());
-}
-
-#[tokio::test]
-async fn tendencia_persistencia_e_qualidade_da_serie_do_repositorio() {
-    let pool = pool_com_dataset().await;
-    let repo = SqliteMeasurementRepository::new(pool);
-
-    // Tendência: 70 -> 75 -> 72 em ~24h, inclinação positiva pequena.
+    // 70 → 75 → 72 em 24 h: inclinação positiva pequena.
     let tendencia = analyze_trend_de_repositorio(
         &repo,
         "A1",
         Some("M1"),
-        INDICADOR_FREQUENCIA_CARDIACA,
+        INDICADOR_FC,
         None,
         None,
-        0.0,
+        &TrendConfig::default(),
     )
     .await
     .unwrap()
@@ -230,17 +280,55 @@ async fn tendencia_persistencia_e_qualidade_da_serie_do_repositorio() {
     assert_eq!(tendencia.first_value, 70.0);
     assert_eq!(tendencia.last_value, 72.0);
 
-    // Persistência: limiar 74 -> janelas [falso, verdadeiro, falso].
+    // Período mínimo de 3 dias: a série cobre 24 h → None.
+    let cfg = TrendConfig {
+        minimum_period_seconds: 3 * 86_400,
+        ..TrendConfig::default()
+    };
+    assert!(
+        analyze_trend_de_repositorio(&repo, "A1", Some("M1"), INDICADOR_FC, None, None, &cfg)
+            .await
+            .unwrap()
+            .is_none()
+    );
+
+    // Indicador sem série → None.
+    assert!(
+        analyze_trend_de_repositorio(
+            &repo,
+            "A1",
+            Some("M1"),
+            "INEXISTENTE",
+            None,
+            None,
+            &TrendConfig::default(),
+        )
+        .await
+        .unwrap()
+        .is_none()
+    );
+}
+
+#[tokio::test]
+async fn persistencia_da_serie_do_repositorio() {
+    let pool = pool_com_dataset().await;
+    let repo = SqliteMeasurementRepository::new(pool);
+
+    // Limiar 74 → janelas [falso, verdadeiro, falso]: pico pontual.
     let persistencia = evaluate_persistence_de_repositorio(
         &repo,
         "A1",
         Some("M1"),
-        INDICADOR_FREQUENCIA_CARDIACA,
+        INDICADOR_FC,
         None,
         None,
-        74.0,
-        30.0,
-        2,
+        &CriterioAlteracao::AcimaDe(74.0),
+        &PersistenceConfig {
+            janela_segundos: 0,
+            min_persistence_percentage: 30.0,
+            min_consecutive_windows: 2,
+        },
+        None,
     )
     .await
     .unwrap()
@@ -250,128 +338,97 @@ async fn tendencia_persistencia_e_qualidade_da_serie_do_repositorio() {
     assert_eq!(persistencia.altered_windows, 1);
     assert!(!persistencia.is_persistent);
 
-    // Qualidade do dado: 3 amostras válidas sem lacunas.
-    let qualidade = evaluate_data_quality_de_repositorio(
+    // Critério de limite inferior (SpO2 <= 98): a série tem dois valores
+    // (98 e 97; o terceiro é NULL e não entra) → [verdadeiro, verdadeiro].
+    let persistencia = evaluate_persistence_de_repositorio(
         &repo,
         "A1",
         Some("M1"),
-        INDICADOR_FREQUENCIA_CARDIACA,
-        None,
-        None,
-        &DataQualityConfig {
-            minimum_samples: 3,
-            minimum_valid_percentage: 100.0,
-            max_gap_seconds: 86_400,
-            min_value: None,
-            max_value: None,
-            max_step: None,
-        },
-    )
-    .await
-    .unwrap()
-    .expect("qualidade");
-
-    assert_eq!(qualidade.total_samples, 3);
-    assert_eq!(qualidade.valid_samples, 3);
-    assert!(qualidade.acceptable_quality);
-
-    // Indicador sem série -> None em todas as variações.
-    assert!(analyze_trend_de_repositorio(
-        &repo, "A1", Some("M1"), "INEXISTENTE", None, None, 0.0
-    )
-    .await
-    .unwrap()
-    .is_none());
-    assert!(evaluate_persistence_de_repositorio(
-        &repo, "A1", Some("M1"), "INEXISTENTE", None, None, 74.0, 30.0, 1
-    )
-    .await
-    .unwrap()
-    .is_none());
-    assert!(evaluate_data_quality_de_repositorio(
-        &repo,
-        "A1",
-        Some("M1"),
-        "INEXISTENTE",
-        None,
-        None,
-        &DataQualityConfig {
-            minimum_samples: 1,
-            minimum_valid_percentage: 100.0,
-            max_gap_seconds: 86_400,
-            min_value: None,
-            max_value: None,
-            max_step: None,
-        },
-    )
-    .await
-    .unwrap()
-    .is_none());
-}
-
-#[tokio::test]
-async fn estatisticas_da_serie_do_repositorio() {
-    let pool = pool_com_dataset().await;
-    let repo = SqliteMeasurementRepository::new(pool);
-
-    let media = moving_average_de_repositorio(
-        &repo,
-        "A1",
-        Some("M1"),
-        INDICADOR_FREQUENCIA_CARDIACA,
-        None,
-        None,
-    )
-    .await
-    .unwrap()
-    .expect("média");
-
-    assert!((media - (70.0 + 75.0 + 72.0) / 3.0).abs() < 1e-9);
-
-    let desvio = standard_deviation_de_repositorio(
-        &repo,
-        "A1",
-        Some("M1"),
-        INDICADOR_FREQUENCIA_CARDIACA,
-        None,
-        None,
-    )
-    .await
-    .unwrap()
-    .expect("desvio padrão");
-
-    assert!(desvio > 0.0);
-
-    let mediana = median_de_repositorio(
-        &repo,
-        "A1",
-        Some("M1"),
-        INDICADOR_FREQUENCIA_CARDIACA,
-        None,
-        None,
-    )
-    .await
-    .unwrap()
-    .expect("mediana");
-
-    assert_eq!(mediana, 72.0);
-
-    // Correlação FC x SpO2: somente 08:00 e 12:00 têm os dois valores
-    // (70, 75) x (98, 97) -> correlação -1.0.
-    let correlacao = pearson_correlation_de_repositorio(
-        &repo,
-        "A1",
-        Some("M1"),
-        INDICADOR_FREQUENCIA_CARDIACA,
         "SPO2",
         None,
         None,
+        &CriterioAlteracao::AbaixoDe(98.0),
+        &PersistenceConfig {
+            janela_segundos: 0,
+            min_persistence_percentage: 50.0,
+            min_consecutive_windows: 2,
+        },
+        None,
     )
     .await
     .unwrap()
-    .expect("correlação");
+    .expect("persistência de SpO2");
 
-    assert!((correlacao - (-1.0)).abs() < 1e-9);
+    assert_eq!(persistencia.altered_windows, 2);
+    assert!(persistencia.is_persistent);
+
+    // Com verificação de qualidade: amostras suficientes → analisável.
+    let com_qualidade = evaluate_persistence_de_repositorio(
+        &repo,
+        "A1",
+        Some("M1"),
+        INDICADOR_FC,
+        None,
+        None,
+        &CriterioAlteracao::AcimaDe(74.0),
+        &PersistenceConfig {
+            janela_segundos: 0,
+            min_persistence_percentage: 30.0,
+            min_consecutive_windows: 2,
+        },
+        Some(&DataQualityConfig {
+            minimum_samples: 3,
+            ..DataQualityConfig::padrao_para(Indicador::FrequenciaCardiaca)
+        }),
+    )
+    .await
+    .unwrap();
+    assert!(com_qualidade.is_some());
+
+    // Exigindo mais amostras do que existem → Ok(None) (não analisável).
+    let sem_dados = evaluate_persistence_de_repositorio(
+        &repo,
+        "A1",
+        Some("M1"),
+        INDICADOR_FC,
+        None,
+        None,
+        &CriterioAlteracao::AcimaDe(74.0),
+        &PersistenceConfig {
+            janela_segundos: 0,
+            min_persistence_percentage: 30.0,
+            min_consecutive_windows: 2,
+        },
+        Some(&DataQualityConfig {
+            minimum_samples: 10,
+            ..DataQualityConfig::padrao_para(Indicador::FrequenciaCardiaca)
+        }),
+    )
+    .await
+    .unwrap();
+    assert!(sem_dados.is_none());
+
+    // Indicador desconhecido → Ok(None).
+    assert!(
+        evaluate_persistence_de_repositorio(
+            &repo,
+            "A1",
+            Some("M1"),
+            "INEXISTENTE",
+            None,
+            None,
+            &CriterioAlteracao::AcimaDe(74.0),
+            &PersistenceConfig {
+                janela_segundos: 0,
+                min_persistence_percentage: 30.0,
+                min_consecutive_windows: 1,
+            },
+            None,
+        )
+        .await
+        .unwrap()
+        .is_none()
+    );
 }
 
 #[tokio::test]
@@ -385,6 +442,8 @@ async fn exposicao_ambiental_do_repositorio() {
         &EnvironmentalThresholds {
             co2_ppm: 1000.0,
             temperature_c: 21.0,
+            pressure_kpa_min: 95.0,
+            pressure_kpa_max: 105.0,
         },
         14_400, // gap máximo de 4h: apenas o par 08:00 -> 12:00 conta
     )
@@ -393,8 +452,21 @@ async fn exposicao_ambiental_do_repositorio() {
 
     // 4h de exposição: excesso médio de CO2 (200+500)/2 = 350 ppm.
     assert!((resultado.co2_exposure_ppm_hours - 1400.0).abs() < 1e-6);
+    // As duas leituras estão acima de 1000 ppm → 4h acima do limite.
     assert_eq!(resultado.co2_time_above_seconds, 14_400.0);
     assert!((resultado.radiation_dose_msv - ((0.15 + 0.20) / 2.0) * 4.0).abs() < 1e-6);
     assert!((resultado.temperature_exposure_degree_hours - 3.0).abs() < 1e-6);
+    // Pressão sempre dentro da faixa → zero.
+    assert!(resultado.pressure_exposure_kpa_hours.abs() < 1e-9);
+    assert_eq!(resultado.pressure_time_outside_range_seconds, 0.0);
+    // Tempo analisado por indicador (todos com os dois pares presentes).
+    for valor in [
+        resultado.co2_analyzed_seconds,
+        resultado.radiation_analyzed_seconds,
+        resultado.temperature_analyzed_seconds,
+        resultado.pressure_analyzed_seconds,
+    ] {
+        assert_eq!(valor, 14_400.0);
+    }
     assert_eq!(resultado.analyzed_seconds, 14_400.0);
 }

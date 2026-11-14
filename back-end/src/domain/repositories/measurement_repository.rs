@@ -77,13 +77,8 @@ impl ResumoIndicador {
     /// Desvio-padrão populacional derivado da variância (o SQLite empacotado
     /// pelo sqlx não possui a função `sqrt`).
     pub fn desvio_padrao(&self) -> Option<f64> {
-        self.variancia.and_then(|v| {
-            if v >= 0.0 {
-                Some(v.sqrt())
-            } else {
-                None
-            }
-        })
+        self.variancia
+            .and_then(|v| if v >= 0.0 { Some(v.sqrt()) } else { None })
     }
 }
 
@@ -163,6 +158,41 @@ pub struct PainelAtual {
 
 #[async_trait]
 pub trait MeasurementRepository: Send + Sync {
+    // ===== Escritas (coleta e baseline) =====
+
+    /// Persiste uma medição de telemetria fisiológica (INSERT puro).
+    async fn save_telemetria(&self, telemetria: &TelemetriaFisiologica) -> Result<(), sqlx::Error>;
+
+    /// Persiste uma medição ambiental da nave (INSERT puro).
+    async fn save_ambiente(&self, ambiente: &AmbienteNave) -> Result<(), sqlx::Error>;
+
+    /// Devolve a presença ABERTA do astronauta no módulo, ou a inicia
+    /// (idempotente: nunca cria duas presenças abertas para o mesmo par).
+    async fn obter_ou_iniciar_presenca_aberta(
+        &self,
+        astronauta_id: &str,
+        modulo_id: &str,
+        inicio_utc: &str,
+    ) -> Result<PresencaModulo, sqlx::Error>;
+
+    /// Insere um novo baseline fisiológico.
+    async fn salvar_baseline(&self, baseline: &BaselineFisiologico) -> Result<(), sqlx::Error>;
+
+    /// Atualiza um baseline existente (mesmo `id`): valores, período,
+    /// quantidade de amostras e `atualizado_em`/`updated_at`.
+    async fn atualizar_baseline(&self, baseline: &BaselineFisiologico) -> Result<(), sqlx::Error>;
+
+    /// Consulta o baseline de um astronauta para indicador + fase + missão
+    /// (respeitando a chave única do banco; `missao_id = None` busca o
+    /// baseline sem missão associada).
+    async fn buscar_baseline(
+        &self,
+        astronauta_id: &str,
+        indicador: &str,
+        fase_missao: &str,
+        missao_id: Option<&str>,
+    ) -> Result<Option<BaselineFisiologico>, sqlx::Error>;
+
     // ===== Consultas básicas =====
 
     /// Query 1.6 — busca uma medição de telemetria fisiológica pelo `id`.
@@ -172,24 +202,20 @@ pub trait MeasurementRepository: Send + Sync {
     ) -> Result<Option<TelemetriaFisiologica>, sqlx::Error>;
 
     /// Query 1.7 — busca um registro diário pelo `id`.
-    async fn find_daily_log_by_id(
-        &self,
-        id: &str,
-    ) -> Result<Option<RegistroDiario>, sqlx::Error>;
+    async fn find_daily_log_by_id(&self, id: &str) -> Result<Option<RegistroDiario>, sqlx::Error>;
 
     /// Query 1.9 — busca uma medição ambiental pelo `id`.
-    async fn find_environment_by_id(
-        &self,
-        id: &str,
-    ) -> Result<Option<AmbienteNave>, sqlx::Error>;
+    async fn find_environment_by_id(&self, id: &str) -> Result<Option<AmbienteNave>, sqlx::Error>;
 
     /// Query 1.10 — lista as presenças de um astronauta em módulos da nave.
     async fn list_presences(&self, astronauta_id: &str)
-        -> Result<Vec<PresencaModulo>, sqlx::Error>;
+    -> Result<Vec<PresencaModulo>, sqlx::Error>;
 
     /// Query 1.11 — lista todos os exames clínicos de um astronauta.
-    async fn list_clinical_exams(&self, astronauta_id: &str)
-        -> Result<Vec<ExameClinico>, sqlx::Error>;
+    async fn list_clinical_exams(
+        &self,
+        astronauta_id: &str,
+    ) -> Result<Vec<ExameClinico>, sqlx::Error>;
 
     /// Query 6.6 — lista os exames clínicos de um astronauta com filtros opcionais.
     async fn list_clinical_exams_filtered(
@@ -282,10 +308,14 @@ pub trait MeasurementRepository: Send + Sync {
         inicio_utc: Option<&str>,
         fim_utc: Option<&str>,
     ) -> Result<Vec<ResumoAmbientalModulo>, sqlx::Error>;
-    
+
     async fn list_daily_logs(
-        &self, astronauta_id: &str, inicio_utc: Option<&str>, fim_utc: Option<&str>,
-        limit: i64, offset: i64,
+        &self,
+        astronauta_id: &str,
+        inicio_utc: Option<&str>,
+        fim_utc: Option<&str>,
+        limit: i64,
+        offset: i64,
     ) -> Result<Vec<RegistroDiario>, sqlx::Error>;
 
     // ===== Painel =====

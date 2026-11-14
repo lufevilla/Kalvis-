@@ -2,9 +2,7 @@ use async_trait::async_trait;
 use sqlx::SqlitePool;
 
 use crate::domain::entities::mission_entity::{Missao, ModuloNave};
-use crate::domain::repositories::mission_repository::{
-    MissionRepository, ParticipacaoAstronauta,
-};
+use crate::domain::repositories::mission_repository::{MissionRepository, ParticipacaoAstronauta};
 
 pub struct SqliteMissionRepository {
     pool: SqlitePool,

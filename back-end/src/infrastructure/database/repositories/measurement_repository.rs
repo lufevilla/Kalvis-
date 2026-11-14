@@ -47,6 +47,223 @@ impl SqliteMeasurementRepository {
 
 #[async_trait]
 impl MeasurementRepository for SqliteMeasurementRepository {
+    /// Escrita — INSERT de telemetria fisiológica.
+    async fn save_telemetria(&self, telemetria: &TelemetriaFisiologica) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            r#"
+            INSERT INTO telemetria_fisiologica (
+                id, astronauta_id, missao_id, timestamp_utc,
+                frequencia_cardiaca_bpm, spo2_percentual,
+                temperatura_corporal_c, temperatura_pele_c,
+                taxa_respiratoria_rpm, hrv_ms,
+                pressao_sistolica_mmhg, pressao_diastolica_mmhg,
+                glicose_mg_dl, origem_medicao, updated_at, deleted_at
+            )
+            VALUES (
+                ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16
+            )
+            "#,
+        )
+        .bind(&telemetria.id)
+        .bind(&telemetria.astronauta_id)
+        .bind(&telemetria.missao_id)
+        .bind(&telemetria.timestamp_utc)
+        .bind(telemetria.frequencia_cardiaca_bpm)
+        .bind(telemetria.spo2_percentual)
+        .bind(telemetria.temperatura_corporal_c)
+        .bind(telemetria.temperatura_pele_c)
+        .bind(telemetria.taxa_respiratoria_rpm)
+        .bind(telemetria.hrv_ms)
+        .bind(telemetria.pressao_sistolica_mmhg)
+        .bind(telemetria.pressao_diastolica_mmhg)
+        .bind(telemetria.glicose_mg_dl)
+        .bind(&telemetria.origem_medicao)
+        .bind(&telemetria.updated_at)
+        .bind(&telemetria.deleted_at)
+        .execute(&self.pool)
+        .await
+        .map(|_| ())
+    }
+
+    /// Escrita — INSERT de medição ambiental.
+    async fn save_ambiente(&self, ambiente: &AmbienteNave) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            r#"
+            INSERT INTO ambiente_nave (
+                id, modulo_id, timestamp_utc, co2_ppm, radiacao_msv_hora,
+                temperatura_cabine_c, pressao_kpa, updated_at, deleted_at
+            )
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+            "#,
+        )
+        .bind(&ambiente.id)
+        .bind(&ambiente.modulo_id)
+        .bind(&ambiente.timestamp_utc)
+        .bind(ambiente.co2_ppm)
+        .bind(ambiente.radiacao_msv_hora)
+        .bind(ambiente.temperatura_cabine_c)
+        .bind(ambiente.pressao_kpa)
+        .bind(&ambiente.updated_at)
+        .bind(&ambiente.deleted_at)
+        .execute(&self.pool)
+        .await
+        .map(|_| ())
+    }
+
+    /// Escrita — presença aberta do astronauta no módulo (idempotente).
+    async fn obter_ou_iniciar_presenca_aberta(
+        &self,
+        astronauta_id: &str,
+        modulo_id: &str,
+        inicio_utc: &str,
+    ) -> Result<PresencaModulo, sqlx::Error> {
+        if let Some(presenca) = sqlx::query_as::<_, PresencaModulo>(
+            r#"
+            SELECT id, astronauta_id, modulo_id, inicio_utc, fim_utc, updated_at, deleted_at
+            FROM presenca_modulo
+            WHERE astronauta_id = ?1
+              AND modulo_id = ?2
+              AND fim_utc IS NULL
+              AND deleted_at IS NULL
+            ORDER BY inicio_utc DESC
+            LIMIT 1
+            "#,
+        )
+        .bind(astronauta_id)
+        .bind(modulo_id)
+        .fetch_optional(&self.pool)
+        .await?
+        {
+            return Ok(presenca);
+        }
+
+        let id = uuid::Uuid::new_v4().to_string();
+        sqlx::query(
+            r#"
+            INSERT INTO presenca_modulo (id, astronauta_id, modulo_id, inicio_utc)
+            VALUES (?1, ?2, ?3, ?4)
+            "#,
+        )
+        .bind(&id)
+        .bind(astronauta_id)
+        .bind(modulo_id)
+        .bind(inicio_utc)
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query_as::<_, PresencaModulo>(
+            r#"
+            SELECT id, astronauta_id, modulo_id, inicio_utc, fim_utc, updated_at, deleted_at
+            FROM presenca_modulo
+            WHERE id = ?1
+            "#,
+        )
+        .bind(&id)
+        .fetch_one(&self.pool)
+        .await
+    }
+
+    /// Escrita — INSERT de um novo baseline.
+    async fn salvar_baseline(&self, baseline: &BaselineFisiologico) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            r#"
+            INSERT INTO baseline_fisiologico (
+                id, astronauta_id, indicador, fase_missao, missao_id,
+                valor_referencia, desvio_padrao, periodo_inicio, periodo_fim,
+                quantidade_amostras, atualizado_em, updated_at, deleted_at
+            )
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+            "#,
+        )
+        .bind(&baseline.id)
+        .bind(&baseline.astronauta_id)
+        .bind(&baseline.indicador)
+        .bind(&baseline.fase_missao)
+        .bind(&baseline.missao_id)
+        .bind(baseline.valor_referencia)
+        .bind(baseline.desvio_padrao)
+        .bind(&baseline.periodo_inicio)
+        .bind(&baseline.periodo_fim)
+        .bind(baseline.quantidade_amostras)
+        .bind(&baseline.atualizado_em)
+        .bind(&baseline.updated_at)
+        .bind(&baseline.deleted_at)
+        .execute(&self.pool)
+        .await
+        .map(|_| ())
+    }
+
+    /// Escrita — UPDATE de um baseline existente (por `id`).
+    async fn atualizar_baseline(&self, baseline: &BaselineFisiologico) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            r#"
+            UPDATE baseline_fisiologico
+            SET valor_referencia = ?2,
+                desvio_padrao = ?3,
+                periodo_inicio = ?4,
+                periodo_fim = ?5,
+                quantidade_amostras = ?6,
+                atualizado_em = ?7,
+                updated_at = ?8
+            WHERE id = ?1
+              AND deleted_at IS NULL
+            "#,
+        )
+        .bind(&baseline.id)
+        .bind(baseline.valor_referencia)
+        .bind(baseline.desvio_padrao)
+        .bind(&baseline.periodo_inicio)
+        .bind(&baseline.periodo_fim)
+        .bind(baseline.quantidade_amostras)
+        .bind(&baseline.atualizado_em)
+        .bind(&baseline.updated_at)
+        .execute(&self.pool)
+        .await
+        .map(|_| ())
+    }
+
+    /// Leitura — baseline por astronauta + indicador + fase + missão
+    /// (respeitando a chave única; `missao_id = None` → linha sem missão).
+    async fn buscar_baseline(
+        &self,
+        astronauta_id: &str,
+        indicador: &str,
+        fase_missao: &str,
+        missao_id: Option<&str>,
+    ) -> Result<Option<BaselineFisiologico>, sqlx::Error> {
+        sqlx::query_as::<_, BaselineFisiologico>(
+            r#"
+            SELECT
+                id,
+                astronauta_id,
+                indicador,
+                fase_missao,
+                missao_id,
+                valor_referencia,
+                desvio_padrao,
+                periodo_inicio,
+                periodo_fim,
+                quantidade_amostras,
+                atualizado_em,
+                updated_at,
+                deleted_at
+            FROM baseline_fisiologico
+            WHERE astronauta_id = ?1
+              AND indicador = ?2
+              AND fase_missao = ?3
+              AND deleted_at IS NULL
+              AND ((?4 IS NULL AND missao_id IS NULL) OR missao_id = ?4)
+            LIMIT 1
+            "#,
+        )
+        .bind(astronauta_id)
+        .bind(indicador)
+        .bind(fase_missao)
+        .bind(missao_id)
+        .fetch_optional(&self.pool)
+        .await
+    }
+
     /// Query 1.6
     async fn find_telemetry_by_id(
         &self,
@@ -82,10 +299,7 @@ impl MeasurementRepository for SqliteMeasurementRepository {
     }
 
     /// Query 1.7
-    async fn find_daily_log_by_id(
-        &self,
-        id: &str,
-    ) -> Result<Option<RegistroDiario>, sqlx::Error> {
+    async fn find_daily_log_by_id(&self, id: &str) -> Result<Option<RegistroDiario>, sqlx::Error> {
         sqlx::query_as::<_, RegistroDiario>(
             r#"
             SELECT
@@ -115,10 +329,7 @@ impl MeasurementRepository for SqliteMeasurementRepository {
     }
 
     /// Query 1.9
-    async fn find_environment_by_id(
-        &self,
-        id: &str,
-    ) -> Result<Option<AmbienteNave>, sqlx::Error> {
+    async fn find_environment_by_id(&self, id: &str) -> Result<Option<AmbienteNave>, sqlx::Error> {
         sqlx::query_as::<_, AmbienteNave>(
             r#"
             SELECT
@@ -674,6 +885,51 @@ impl MeasurementRepository for SqliteMeasurementRepository {
         .bind(missao_id)
         .bind(inicio_utc)
         .bind(fim_utc)
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    /// Série diária de registros (ordem cronológica) para os módulos de análise.
+    async fn list_daily_logs(
+        &self,
+        astronauta_id: &str,
+        inicio_utc: Option<&str>,
+        fim_utc: Option<&str>,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<RegistroDiario>, sqlx::Error> {
+        sqlx::query_as::<_, RegistroDiario>(
+            r#"
+            SELECT
+                id,
+                astronauta_id,
+                data_registro,
+                horas_sono_total,
+                qualidade_sono_score,
+                exercicio_resistencia_min,
+                exercicio_aerobico_min,
+                ingestao_agua_ml,
+                calorias_consumidas,
+                score_teste_cognitivo,
+                nivel_estresse_subjetivo,
+                humor_score,
+                fadiga_score,
+                updated_at,
+                deleted_at
+            FROM registros_diarios
+            WHERE astronauta_id = ?1
+              AND deleted_at IS NULL
+              AND (?2 IS NULL OR data_registro >= date(?2))
+              AND (?3 IS NULL OR data_registro <= date(?3))
+            ORDER BY data_registro
+            LIMIT ?4 OFFSET ?5
+            "#,
+        )
+        .bind(astronauta_id)
+        .bind(inicio_utc)
+        .bind(fim_utc)
+        .bind(limit)
+        .bind(offset)
         .fetch_all(&self.pool)
         .await
     }

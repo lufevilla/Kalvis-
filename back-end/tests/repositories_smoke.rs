@@ -13,8 +13,8 @@ use back_end::infrastructure::database::repositories::alert_repository::SqliteAl
 use back_end::infrastructure::database::repositories::astronaut_repository::SqliteAstronautRepository;
 use back_end::infrastructure::database::repositories::measurement_repository::SqliteMeasurementRepository;
 use back_end::infrastructure::database::repositories::mission_repository::SqliteMissionRepository;
-use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::SqlitePool;
+use sqlx::sqlite::SqlitePoolOptions;
 
 async fn pool_com_dataset() -> SqlitePool {
     let pool = SqlitePoolOptions::new()
@@ -23,11 +23,18 @@ async fn pool_com_dataset() -> SqlitePool {
         .await
         .expect("conectar");
 
-    sqlx::migrate!("./migrations").run(&pool).await.expect("migrations");
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .expect("migrations");
 
     // ===== Dados de exemplo =====
-    sqlx::query("INSERT INTO astronautas (id, nome, data_nascimento) VALUES ('A1', 'Kalvis', '1990-05-01')")
-        .execute(&pool).await.unwrap();
+    sqlx::query(
+        "INSERT INTO astronautas (id, nome, data_nascimento) VALUES ('A1', 'Kalvis', '1990-05-01')",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
 
     sqlx::query("INSERT INTO missoes (id, nome_missao, data_lancamento) VALUES ('M1', 'Artemis III', '2025-01-10T00:00:00Z')")
         .execute(&pool).await.unwrap();
@@ -35,8 +42,12 @@ async fn pool_com_dataset() -> SqlitePool {
     sqlx::query("INSERT INTO participacao_missao (id, astronauta_id, missao_id, funcao) VALUES ('PM1', 'A1', 'M1', 'COMANDANTE')")
         .execute(&pool).await.unwrap();
 
-    sqlx::query("INSERT INTO modulos_nave (id, missao_id, nome) VALUES ('MOD1', 'M1', 'Habitat A')")
-        .execute(&pool).await.unwrap();
+    sqlx::query(
+        "INSERT INTO modulos_nave (id, missao_id, nome) VALUES ('MOD1', 'M1', 'Habitat A')",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
 
     sqlx::query(
         "INSERT INTO telemetria_fisiologica
@@ -56,7 +67,10 @@ async fn pool_com_dataset() -> SqlitePool {
              calorias_consumidas, score_teste_cognitivo, nivel_estresse_subjetivo,
              humor_score, fadiga_score)
          VALUES ('R1', 'A1', '2025-01-15', 7.5, 8, 30, 45, 2500, 2200, 88.0, 3, 7, 4)",
-    ).execute(&pool).await.unwrap();
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
 
     sqlx::query(
         "INSERT INTO baseline_fisiologico
@@ -140,7 +154,16 @@ async fn medicoes_basicas() {
     assert_eq!(repo.list_clinical_exams("A1").await.unwrap().len(), 1);
 
     let filtrados = repo
-        .list_clinical_exams_filtered("A1", Some("M1"), Some("EM_VOO"), Some("SANGUE"), Some("2025-01-01"), Some("2025-01-31"), 10, 0)
+        .list_clinical_exams_filtered(
+            "A1",
+            Some("M1"),
+            Some("EM_VOO"),
+            Some("SANGUE"),
+            Some("2025-01-01"),
+            Some("2025-01-31"),
+            10,
+            0,
+        )
         .await
         .unwrap();
     assert_eq!(filtrados.len(), 1);
@@ -151,7 +174,10 @@ async fn medicoes_basicas() {
         .unwrap();
     assert!(sem_resultado.is_empty());
 
-    let baselines = repo.list_baselines("A1", Some("M1"), Some("EM_VOO")).await.unwrap();
+    let baselines = repo
+        .list_baselines("A1", Some("M1"), Some("EM_VOO"))
+        .await
+        .unwrap();
     assert_eq!(baselines.len(), 2);
 }
 
@@ -197,10 +223,23 @@ async fn contexto_e_serie_temporal() {
         .expect("contexto de T1");
     assert_eq!(contexto.registro_diario_id.as_deref(), Some("R1"));
     assert_eq!(contexto.medicoes_no_dia, Some(2));
-    assert!(repo.get_daily_context_for_telemetry("inexistente").await.unwrap().is_none());
+    assert!(
+        repo.get_daily_context_for_telemetry("inexistente")
+            .await
+            .unwrap()
+            .is_none()
+    );
 
     let serie = repo
-        .list_indicator_time_series("A1", Some("M1"), "frequencia_cardiaca_bpm", None, None, 10, 0)
+        .list_indicator_time_series(
+            "A1",
+            Some("M1"),
+            "frequencia_cardiaca_bpm",
+            None,
+            None,
+            10,
+            0,
+        )
         .await
         .unwrap();
     assert_eq!(serie.len(), 3);
@@ -225,7 +264,13 @@ async fn contexto_e_serie_temporal() {
 
     // Janela sem amostras -> None.
     let vazio = repo
-        .get_indicator_summary("A1", Some("M1"), "frequencia_cardiaca_bpm", None, Some("2025-01-01"))
+        .get_indicator_summary(
+            "A1",
+            Some("M1"),
+            "frequencia_cardiaca_bpm",
+            None,
+            Some("2025-01-01"),
+        )
         .await
         .unwrap();
     assert!(vazio.is_none());
@@ -241,7 +286,10 @@ async fn resumos_diarios_e_ambiente() {
         .await
         .unwrap();
     assert_eq!(resumos.len(), 2);
-    let dia15 = resumos.iter().find(|r| r.data_referencia == "2025-01-15").unwrap();
+    let dia15 = resumos
+        .iter()
+        .find(|r| r.data_referencia == "2025-01-15")
+        .unwrap();
     assert_eq!(dia15.medicoes_no_dia, 2);
     assert_eq!(dia15.horas_sono_total, Some(7.5));
     assert_eq!(dia15.qualidade_sono_score, Some(8));
@@ -275,7 +323,12 @@ async fn painel_atual() {
     assert_eq!(painel.registro_diario_id.as_deref(), Some("R1"));
     assert_eq!(painel.nome_modulo_atual.as_deref(), Some("Habitat A"));
 
-    assert!(repo.get_current_panel("inexistente").await.unwrap().is_none());
+    assert!(
+        repo.get_current_panel("inexistente")
+            .await
+            .unwrap()
+            .is_none()
+    );
 }
 
 #[tokio::test]
@@ -287,10 +340,24 @@ async fn alertas_todas_as_queries() {
     assert_eq!(alerta.nivel_risco, "ATENCAO");
 
     assert_eq!(repo.list(None, None, None, 10, 0).await.unwrap().len(), 1);
-    assert_eq!(repo.list(Some("A1"), None, Some("ATENCAO"), 10, 0).await.unwrap().len(), 1);
-    assert!(repo.list(Some("A1"), None, Some("CRITICO"), 10, 0).await.unwrap().is_empty());
+    assert_eq!(
+        repo.list(Some("A1"), None, Some("ATENCAO"), 10, 0)
+            .await
+            .unwrap()
+            .len(),
+        1
+    );
+    assert!(
+        repo.list(Some("A1"), None, Some("CRITICO"), 10, 0)
+            .await
+            .unwrap()
+            .is_empty()
+    );
 
-    assert_eq!(repo.list_recent_by_astronaut("A1", 5).await.unwrap().len(), 1);
+    assert_eq!(
+        repo.list_recent_by_astronaut("A1", 5).await.unwrap().len(),
+        1
+    );
 
     let contagem = repo.count_by_risk_level(Some("A1"), None).await.unwrap();
     assert_eq!(contagem.len(), 1);
@@ -306,13 +373,31 @@ async fn soft_delete_eh_respeitado() {
     let measurement_repo = SqliteMeasurementRepository::new(pool.clone());
 
     sqlx::query("UPDATE astronautas SET deleted_at = '2025-01-20T00:00:00Z' WHERE id = 'A1'")
-        .execute(&pool).await.unwrap();
+        .execute(&pool)
+        .await
+        .unwrap();
 
     assert!(repo.find_by_id("A1").await.unwrap().is_none());
     assert!(repo.list(10, 0).await.unwrap().is_empty());
-    assert!(mission_repo.list_participations_by_astronaut("A1").await.unwrap().is_empty());
+    assert!(
+        mission_repo
+            .list_participations_by_astronaut("A1")
+            .await
+            .unwrap()
+            .is_empty()
+    );
 
-    sqlx::query("UPDATE telemetria_fisiologica SET deleted_at = '2025-01-20T00:00:00Z' WHERE id = 'T1'")
-        .execute(&pool).await.unwrap();
-    assert!(measurement_repo.find_telemetry_by_id("T1").await.unwrap().is_none());
+    sqlx::query(
+        "UPDATE telemetria_fisiologica SET deleted_at = '2025-01-20T00:00:00Z' WHERE id = 'T1'",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    assert!(
+        measurement_repo
+            .find_telemetry_by_id("T1")
+            .await
+            .unwrap()
+            .is_none()
+    );
 }
