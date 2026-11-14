@@ -1,0 +1,14 @@
+{
+  "roots": [
+    "heartcare_rag"
+  ],
+  "packages": [
+    {
+      "name": "heartcare_rag",
+      "version": "0.1.0",
+      "dependencies": [],
+      "devDependencies": []
+    }
+  ],
+  "configVersion": 1
+}

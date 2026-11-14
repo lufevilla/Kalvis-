@@ -1,0 +1,12 @@
+{
+  "id": "CV02",
+  "title": "Redistribuição de fluidos e monitoramento cardiovascular",
+  "version": "1.0",
+  "source": "NASA | https://www.nasa.gov/directorates/esdmd/hhp/cardiovascular-and-vision/",
+  "approved": true,
+  "text": "Na microgravidade, fluidos corporais se redistribuem em direção à cabeça. A NASA descreve alterações no volume sanguíneo e dificuldades de tolerância ortostática após a reexposição à gravidade. Também investiga fluxo venoso lento ou estagnado e potenciais implicações para trombose. Essas observações são populacionais e não comprovam trombose em um astronauta individual.\n\nMétodos estudados incluem ultrassonografia, eletrocardiografia ambulatorial, monitoramento ambulatorial de pressão arterial e testes de tolerância ortostática. A presença de um método em pesquisa não significa que o equipamento esteja disponível na missão simulada. A lista de recursos a bordo deve ser fornecida separadamente.\n\nPara interpretação de pressão arterial e frequência cardíaca, o sistema precisa das unidades, postura, contexto de medição, tendências e protocolos aprovados. Não se deve inferir risco clínico de uma única amostra.",
+  "category": "cardiovascular",
+  "source_url": "https://www.nasa.gov/directorates/esdmd/hhp/cardiovascular-and-vision/",
+  "document_type": "scientific_context",
+  "clinical_protocol_approved": false
+}

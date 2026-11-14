@@ -1,0 +1,12 @@
+{
+  "id": "EX02",
+  "title": "Sono insuficiente e riscos em população adulta",
+  "version": "1.0",
+  "source": "CDC | https://www.cdc.gov/cdi/indicator-definitions/sleep.html",
+  "approved": true,
+  "text": "O CDC define, para indicadores populacionais terrestres, curta duração habitual de sono em adultos como menos de sete horas em média por período de 24 horas. A definição é usada para vigilância epidemiológica, não como regra automática de triagem médica de astronautas.\n\nA associação entre sono insuficiente e doenças crônicas não permite atribuir causa a uma medição individual. O Heartcare deve indicar quando não há série temporal suficiente e quando as condições ambientais e operacionais não foram medidas.\n\nPara missão espacial, as recomendações de sono e aptidão para tarefas precisam ser revisadas por especialistas e incorporadas em protocolos próprios.",
+  "category": "sleep",
+  "source_url": "https://www.cdc.gov/cdi/indicator-definitions/sleep.html",
+  "document_type": "scientific_context",
+  "clinical_protocol_approved": false
+}

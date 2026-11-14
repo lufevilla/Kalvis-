@@ -1,0 +1,4 @@
+{
+  "mensagem": "Output message for the user",
+  "rag_sources": [{"document_id": "Document_id", "page": "page_number"}]
+}

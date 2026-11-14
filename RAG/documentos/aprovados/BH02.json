@@ -1,0 +1,12 @@
+{
+  "id": "BH02",
+  "title": "Evidência de risco comportamental e lacunas de validação",
+  "version": "1.0",
+  "source": "NASA Human Research Roadmap | https://humanresearchroadmap.nasa.gov/risks/risk.aspx?i=99",
+  "approved": true,
+  "text": "O Human Research Roadmap descreve o risco de mudanças cognitivas ou comportamentais e de transtornos psiquiátricos em missões de exploração, associado à combinação de isolamento, confinamento, distância da Terra, radiação e gravidade alterada. São possibilidades e riscos de pesquisa, não uma previsão individual.\n\nO documento de risco apresenta evidências de missões espaciais e ambientes análogos terrestres, mas essas populações e condições não são intercambiáveis. Medidas de autorrelato podem auxiliar no acompanhamento longitudinal, desde que sejam validadas para a aplicação.\n\nAo comparar dias consecutivos, o Heartcare deve separar alteração de pontuação, interpretação clínica e hipótese. Nenhum limiar de emergência é fornecido por este resumo.",
+  "category": "psychological",
+  "source_url": "https://humanresearchroadmap.nasa.gov/risks/risk.aspx?i=99",
+  "document_type": "scientific_context",
+  "clinical_protocol_approved": false
+}

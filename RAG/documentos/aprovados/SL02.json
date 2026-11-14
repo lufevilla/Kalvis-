@@ -1,0 +1,12 @@
+{
+  "id": "SL02",
+  "title": "Sono e saúde cardiovascular em adultos na Terra",
+  "version": "1.0",
+  "source": "CDC | https://www.cdc.gov/heart-disease/about/sleep-and-heart-health.html",
+  "approved": true,
+  "text": "O CDC informa que a maioria dos adultos precisa de pelo menos sete horas de sono por noite e relaciona o sono adequado ao funcionamento diário e à saúde cardiovascular. Trata-se de orientação para a população adulta em geral, não de um limite de decisão clínica validado para uma missão a Marte.\n\nA comparação de uma medição de 5,2 horas com recomendações terrestres pode oferecer contexto educativo, mas não deve, isoladamente, gerar diagnóstico, classificação de urgência ou recomendação médica de bordo. A linha de base e as exigências da missão são necessárias.\n\nO RAG deve explicitar quando uma fonte é terrestre e quando sua aplicabilidade ao ambiente espacial é incerta.",
+  "category": "sleep",
+  "source_url": "https://www.cdc.gov/heart-disease/about/sleep-and-heart-health.html",
+  "document_type": "scientific_context",
+  "clinical_protocol_approved": false
+}

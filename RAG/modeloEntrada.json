@@ -1,0 +1,33 @@
+{
+  "mission": {
+    "mission_day": 142,
+    "communication_status": "delayed"
+  },
+  "astronaut": {
+    "id": "AST001"
+  },
+  "timestamp": "2040-06-15T14:30:00Z",
+  "physiological": {
+    "heart_rate": 96,
+    "blood_pressure": "128/84",
+    "spo2": 97,
+    "body_temperature": 37.2,
+    "sleep_hours": 5.2
+  },
+  "psychological": {
+    "mood_score": 4,
+    "stress_score": 8,
+    "anxiety_score": 7,
+    "concentration_score": 5,
+    "loneliness_score": 9,
+    "confinement_discomfort": 8
+  },
+  "environment": {
+    "temperature": 29,
+    "co2_level": 0.15
+  },
+  "activities": {
+    "recent_exercise": false,
+    "extravehicular_activity": false
+  }
+}

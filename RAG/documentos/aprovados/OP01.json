@@ -1,0 +1,12 @@
+{
+  "id": "OP01",
+  "title": "Requisitos gerais de saúde e cuidados médicos",
+  "version": "1.0",
+  "source": "NASA-STD-3001 Volume 1 | https://standards.nasa.gov/node/238",
+  "approved": true,
+  "text": "A norma NASA-STD-3001 Volume 1 aborda requisitos de saúde da tripulação e cuidados médicos em programas de voo espacial. O uso operacional depende de como os requisitos são adaptados e implementados no programa e veículo específicos. A existência de um padrão público não equivale a uma autorização automática de qualquer procedimento.\n\nO Heartcare deve distinguir normas de projeto, critérios clínicos aprovados para a missão, pesquisas e documentos explicativos. Protocolos devem ter versão, responsável pela aprovação, período de vigência, condições de aplicação, recursos necessários e procedimentos de escalonamento.\n\nSem um protocolo operacional de missão fornecido, o sistema não pode afirmar que um procedimento está disponível ou autorizado a bordo.",
+  "category": "operations",
+  "source_url": "https://standards.nasa.gov/node/238",
+  "document_type": "scientific_context",
+  "clinical_protocol_approved": false
+}

@@ -1,0 +1,12 @@
+{
+  "id": "EN02",
+  "title": "Cinco perigos principais do voo espacial humano",
+  "version": "1.0",
+  "source": "NASA | https://www.nasa.gov/wp-content/uploads/2024/01/human-health-and-performance.pdf",
+  "approved": true,
+  "text": "A NASA organiza os perigos fundamentais do voo espacial humano em radiação espacial, isolamento e confinamento, distância da Terra, campos gravitacionais alterados e ambientes hostis ou fechados. Esses fatores podem interagir, afetando fisiologia, comportamento e desempenho. A arquitetura de missões à Lua e a Marte deve levar em conta a combinação desses riscos.\n\nIndicadores ambientais e fisiológicos precisam ser interpretados no contexto da fase da missão. Temperatura ambiental, qualidade do ar, sono, atividade física e estado psicológico podem ser variáveis relevantes, mas correlação não demonstra causalidade.\n\nA fonte é um documento de visão geral de riscos e arquitetura, não um manual operacional com comandos específicos para uma espaçonave.",
+  "category": "environment",
+  "source_url": "https://www.nasa.gov/wp-content/uploads/2024/01/human-health-and-performance.pdf",
+  "document_type": "scientific_context",
+  "clinical_protocol_approved": false
+}

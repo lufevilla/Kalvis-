@@ -1,0 +1,12 @@
+{
+  "id": "EN01",
+  "title": "Exposição a dióxido de carbono em veículos tripulados",
+  "version": "1.0",
+  "source": "NASA | https://www.nasa.gov/directorates/esdmd/hhp/carbon-dioxide-risk/",
+  "approved": true,
+  "text": "Ambientes espaciais fechados não removem naturalmente o dióxido de carbono produzido pela tripulação. A NASA descreve sistemas técnicos de controle de CO2, como dispositivos de remoção, hidróxido de lítio e sistemas de aminas, utilizados para mitigar a exposição.\n\nA interpretação de co2_level exige unidade explícita, localização do sensor, calibração, tempo de exposição, contexto operacional e padrão ambiental aplicável à missão. Um valor numérico como 0.15 não deve ser tratado automaticamente como porcentagem, ppm ou pressão parcial. Converter sem unidade é perigoso.\n\nEste resumo não fornece limiares de alarme nem autoriza ajustes em sistemas de suporte à vida. Alertas ambientais precisam ser calculados por regras de engenharia validadas e não pela LLM.",
+  "category": "environment",
+  "source_url": "https://www.nasa.gov/directorates/esdmd/hhp/carbon-dioxide-risk/",
+  "document_type": "scientific_context",
+  "clinical_protocol_approved": false
+}

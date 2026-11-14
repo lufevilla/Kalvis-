@@ -1,0 +1,12 @@
+{
+  "id": "CV01",
+  "title": "Adaptação cardiovascular na microgravidade",
+  "version": "1.0",
+  "source": "NASA | https://www.nasa.gov/directorates/esdmd/hhp/cv-risk/",
+  "approved": true,
+  "text": "A NASA identifica descondicionamento, disfunção e remodelamento cardiovascular como consequências possíveis da exposição ao ambiente espacial. A manifestação dos riscos depende da fase da missão, incluindo permanência em microgravidade, transições gravitacionais e operações planetárias. A intolerância ortostática durante a reexposição à gravidade é um risco relevante; a saúde cardiovascular de longo prazo permanece tema de investigação.\n\nA avaliação de um indivíduo exige histórico e medições contextualizadas. Uma frequência cardíaca isolada não determina arritmia, descondicionamento ou doença. O Heartcare deve registrar atividade física recente, horário da medição, fase da missão, sintomas informados e comparação com a linha de base individual. Sem esses dados, o resultado deve declarar incerteza.\n\nEste texto é um resumo de evidência científica para recuperação RAG, não um protocolo de triagem ou tratamento. Não contém limites clínicos específicos nem instruções de intervenção.",
+  "category": "cardiovascular",
+  "source_url": "https://www.nasa.gov/directorates/esdmd/hhp/cv-risk/",
+  "document_type": "scientific_context",
+  "clinical_protocol_approved": false
+}

@@ -1,0 +1,12 @@
+{
+  "id": "BH01",
+  "title": "Isolamento e alterações comportamentais em missões longas",
+  "version": "1.0",
+  "source": "NASA | https://www.nasa.gov/directorates/esdmd/hhp/behavioral-health-risk/",
+  "approved": true,
+  "text": "A NASA considera isolamento, confinamento e distância da Terra fatores que podem afetar cognição, comportamento, bem-estar e desempenho da tripulação. Missões de exploração além da órbita terrestre baixa podem contar com menos recursos para implementar contramedidas já validadas na Estação Espacial Internacional. A pesquisa continua buscando contramedidas viáveis para missões exploratórias.\n\nPontuações autorrelatadas de solidão, estresse, ansiedade, humor e concentração são sinais de monitoramento, não diagnósticos psiquiátricos. A interpretação requer conhecimento da escala utilizada, evolução temporal, impacto funcional, contexto de equipe e avaliação humana adequada. O número 9 em uma escala desconhecida não equivale a um diagnóstico.\n\nO RAG pode explicar por que esses indicadores são acompanhados e quais incertezas existem. Não deve sugerir medicação ou protocolo de intervenção que não tenha sido explicitamente autorizado para a missão.",
+  "category": "psychological",
+  "source_url": "https://www.nasa.gov/directorates/esdmd/hhp/behavioral-health-risk/",
+  "document_type": "scientific_context",
+  "clinical_protocol_approved": false
+}

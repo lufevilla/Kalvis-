@@ -1,0 +1,12 @@
+{
+  "id": "SL01",
+  "title": "Sono, fadiga e ritmo circadiano no voo espacial",
+  "version": "1.0",
+  "source": "NASA | https://www.nasa.gov/directorates/esdmd/hhp/risk-of-performance-decrements-and-adverse-health-outcomes-resulting-from-sleep-loss-circadian-desynchronization-and-work-overload/",
+  "approved": true,
+  "text": "A NASA descreve privação de sono e perturbações circadianas em astronautas, com possíveis impactos em fadiga, desempenho e erros durante tarefas. Ruído, temperatura, vibração e luz podem prejudicar o sono e o bem-estar no ambiente espacial. A qualidade e a quantidade do sono devem ser consideradas em conjunto.\n\nUma duração de sono registrada em horas é uma observação, não uma prova de doença. É importante distinguir uma noite isolada de um padrão persistente, registrar carga de trabalho, turnos, perturbações ambientais e autorrelato de descanso. Sem histórico, não é possível determinar persistência.\n\nAções específicas devem vir de protocolos aprovados para a tripulação; esta nota não autoriza mudanças de jornada, medicação ou decisões sobre aptidão para tarefas críticas.",
+  "category": "sleep",
+  "source_url": "https://www.nasa.gov/directorates/esdmd/hhp/risk-of-performance-decrements-and-adverse-health-outcomes-resulting-from-sleep-loss-circadian-desynchronization-and-work-overload/",
+  "document_type": "scientific_context",
+  "clinical_protocol_approved": false
+}

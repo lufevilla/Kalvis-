@@ -1,0 +1,12 @@
+{
+  "id": "OP03",
+  "title": "Autonomia e limitações médicas em missões distantes",
+  "version": "1.0",
+  "source": "NASA | https://www.nasa.gov/reference/fundamentals-of-human-health/",
+  "approved": true,
+  "text": "A NASA descreve desafios de cuidados médicos durante o voo espacial, incluindo capacidade limitada de armazenamento, interrupções de comunicação com equipes em Terra, exposição à radiação e limitações funcionais em microgravidade. Missões distantes exigem considerar a autonomia da tripulação e os recursos efetivamente disponíveis.\n\nUm atraso de comunicação não implica ausência permanente de suporte da Terra. O Heartcare deve registrar o estado da comunicação e, quando existir protocolo aprovado, distinguir avaliação local, consulta diferida e ações que não dependem de contato imediato.\n\nO sistema não deve recomendar serviços de emergência terrestres como resposta padrão para um astronauta em trânsito para Marte. Tampouco deve presumir medicamentos, equipamentos ou qualificações da tripulação.",
+  "category": "operations",
+  "source_url": "https://www.nasa.gov/reference/fundamentals-of-human-health/",
+  "document_type": "scientific_context",
+  "clinical_protocol_approved": false
+}

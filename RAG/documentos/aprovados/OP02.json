@@ -1,0 +1,12 @@
+{
+  "id": "OP02",
+  "title": "Fatores humanos e ambiente habitável",
+  "version": "1.0",
+  "source": "NASA-STD-3001 Volume 2 | https://standards.nasa.gov/node/237",
+  "approved": true,
+  "text": "A norma NASA-STD-3001 Volume 2 trata de fatores humanos, habitabilidade e saúde ambiental, com requisitos técnicos para sistemas tripulados. A edição pública identificada na fonte é a revisão F, datada de julho de 2026. Sua aplicabilidade depende das decisões do programa e do perfil de missão.\n\nPara integrar regras de ambiente ao Heartcare, cada parâmetro deve declarar unidade, faixa operacional autorizada, instrumento de medição, frequência de coleta e ação definida pelo responsável técnico. O RAG não deve inventar esses parâmetros nem extrair limites fora de contexto.\n\nO documento é referência normativa; o presente resumo não reproduz as tabelas técnicas nem substitui a consulta ao padrão original.",
+  "category": "operations",
+  "source_url": "https://standards.nasa.gov/node/237",
+  "document_type": "scientific_context",
+  "clinical_protocol_approved": false
+}
