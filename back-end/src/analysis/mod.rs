@@ -1,5 +1,7 @@
+pub mod alert_stream;
 pub mod baseline;
 pub mod data_quality;
+pub mod engine;
 pub mod environmental_exposure;
 pub mod persistence;
 pub mod repository;

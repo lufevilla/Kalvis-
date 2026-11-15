@@ -1,0 +1,12 @@
+{
+  "id": "ISO01",
+  "title": "Hazard: Isolation and Confinement",
+  "version": "1.0",
+  "source": "NASA | https://www.nasa.gov/hrp/hazard-isolation-and-confinement/",
+  "approved": true,
+  "text": "Perda de sono, dessincronização circadiana e sobrecarga de trabalho agravam os efeitos do isolamento e podem reduzir o desempenho e a saúde. A NASA monitora a saúde comportamental e estuda terapia de luz para alinhamento circadiano.",
+  "category": "psychological",
+  "source_url": "https://www.nasa.gov/hrp/hazard-isolation-and-confinement/",
+  "document_type": "nasa_hazard",
+  "clinical_protocol_approved": false
+}

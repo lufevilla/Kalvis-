@@ -1,0 +1,12 @@
+{
+  "id": "GRV01",
+  "title": "Hazard: Gravity Fields",
+  "version": "1.0",
+  "source": "NASA | https://www.nasa.gov/hrp/hazard-gravity-fields/",
+  "approved": true,
+  "text": "Sem gravidade, os ossos que sustentam peso perdem de 1% a 1,5% de densidade mineral por mês. Os fluidos se deslocam para a cabeça, o que pode afetar a visão. Na transição de gravidade podem ocorrer tontura e desmaio.",
+  "category": "cardiovascular",
+  "source_url": "https://www.nasa.gov/hrp/hazard-gravity-fields/",
+  "document_type": "nasa_hazard",
+  "clinical_protocol_approved": false
+}

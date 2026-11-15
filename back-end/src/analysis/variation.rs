@@ -28,7 +28,7 @@ use super::data_quality::{
 use super::repository::Indicador;
 use super::statistics::{mean, percent_change, z_score};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct VariationConfig {
     /// |z| acima disso = Atenção.
     pub z_atencao: f64,
@@ -273,7 +273,7 @@ pub async fn calcular_variacao_de_repositorio(
     let resultado = evaluate_data_quality_de_repositorio(
         repo,
         contexto.astronauta_id,
-        missao_id,
+        contexto.missao_id,
         indicador,
         Some(janela_atual),
         qualidade,

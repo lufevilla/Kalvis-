@@ -1,0 +1,12 @@
+{
+  "id": "RAD01",
+  "title": "Hazard: Space Radiation",
+  "version": "1.0",
+  "source": "NASA | https://www.nasa.gov/hrp/hazard-space-radiation/",
+  "approved": true,
+  "text": "A radiação espacial é invisível e não pode ser sentida. A exposição aumenta o risco de câncer, danifica o sistema nervoso central, pode alterar a função cognitiva e motora e provocar mudanças comportamentais.",
+  "category": "environment",
+  "source_url": "https://www.nasa.gov/hrp/hazard-space-radiation/",
+  "document_type": "nasa_hazard",
+  "clinical_protocol_approved": false
+}

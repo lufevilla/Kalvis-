@@ -118,7 +118,7 @@ pub struct AmostraBruta {
     pub valor: Option<f64>,
 }
 
-fn verificar_limite(qtd: usize) -> Result<(), sqlx::Error> {
+pub(crate) fn verificar_limite(qtd: usize) -> Result<(), sqlx::Error> {
     if qtd as i64 > LIMITE_PADRAO_SERIE {
         return Err(sqlx::Error::Protocol(format!(
             "série excede o limite de {LIMITE_PADRAO_SERIE} amostras"
@@ -126,6 +126,7 @@ fn verificar_limite(qtd: usize) -> Result<(), sqlx::Error> {
     }
     Ok(())
 }
+
 
 /// Série bruta de qualquer indicador (telemetria ou registro diário).
 pub async fn buscar_serie_bruta(
@@ -158,17 +159,23 @@ pub async fn buscar_serie_bruta(
             })
             .collect(),
 
-        // Registro diário não tem missão associada.
-        None => repo
-            .list_daily_logs(astronauta_id, inicio_utc, fim_utc, limite, 0)
-            .await?
-            .into_iter()
-            .filter(|r| r.deleted_at.is_none())
-            .map(|r| AmostraBruta {
-                momento_utc: r.data_registro,
-                valor: r.horas_sono_total,
-            })
-            .collect(),
+        // Registro diário: `data_registro` é YYYY-MM-DD. Trunca a janela para
+        // data, senão "2026-11-15" < "2026-11-15T00:00:00.000Z" exclui o 1º dia.
+        None => {
+            let dia = |s: &str| s.get(..10).unwrap_or(s).to_string();
+            let inicio = inicio_utc.map(dia);
+            let fim = fim_utc.map(dia);
+            repo.list_daily_logs(astronauta_id, inicio.as_deref(), fim.as_deref(), limite, 0)
+                .await?
+                .into_iter()
+                .filter(|r| r.deleted_at.is_none())
+                .map(|r| AmostraBruta {
+                    momento_utc: r.data_registro,
+                    valor: r.horas_sono_total,
+                })
+                .collect()
+        }
+
     };
 
     verificar_limite(serie.len())?;

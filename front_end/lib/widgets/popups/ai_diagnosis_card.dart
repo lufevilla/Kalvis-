@@ -64,7 +64,8 @@ class AiDiagnosisCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           // TODO: recomendações reais geradas pela IA a partir do diagnóstico
-          for (final recommendation in recommendations) _BulletLine(text: recommendation),
+          for (final recommendation in recommendations)
+            _BulletLine(text: recommendation),
           const SizedBox(height: 20),
           Wrap(
             spacing: 12,
@@ -80,8 +81,13 @@ class AiDiagnosisCard extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.navy,
                   side: const BorderSide(color: AppColors.border),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
               FilledButton.icon(
@@ -93,8 +99,13 @@ class AiDiagnosisCard extends StatelessWidget {
                 label: const Text('Ir para conversa'),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.navy,
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
             ],
@@ -116,7 +127,9 @@ class _FindingRow extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 16,
-          backgroundColor: data.isAlert ? AppColors.accentSoft : AppColors.border,
+          backgroundColor: data.isAlert
+              ? AppColors.accentSoft
+              : AppColors.border,
           child: Icon(
             data.icon,
             size: 16,
@@ -138,7 +151,10 @@ class _FindingRow extends StatelessWidget {
               ),
               Text(
                 data.subtitle,
-                style: const TextStyle(fontSize: 12, color: AppColors.textSubtle),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSubtle,
+                ),
               ),
             ],
           ),
@@ -167,7 +183,11 @@ class _BulletLine extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(fontSize: 13, height: 1.4, color: AppColors.textMuted),
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.4,
+                color: AppColors.textMuted,
+              ),
             ),
           ),
         ],

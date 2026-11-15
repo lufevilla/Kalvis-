@@ -16,4 +16,10 @@ abstract final class AppColors {
   static const accent = Color(0xFFD6336C);
   static const accentSoft = Color(0xFFFFF0F4);
   static const accentBorder = Color(0xFFF5C2D0);
+
+  static const success = Color(0xFF22A45D);
+  static const successSoft = Color(0xFFE8F7EE);
+
+  static const warning = Color(0xFFD98E04);
+  static const warningSoft = Color(0xFFFFF4DC);
 }

@@ -27,7 +27,10 @@ class CheckInStatusCard extends StatelessWidget {
               ),
               Text(
                 '${summary.answeredCount} of ${summary.totalCount} answered today',
-                style: const TextStyle(fontSize: 12, color: AppColors.textSubtle),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSubtle,
+                ),
               ),
             ],
           ),
@@ -43,7 +46,8 @@ class CheckInStatusCard extends StatelessWidget {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
-                  for (final item in summary.categories) _StatusItem(status: item),
+                  for (final item in summary.categories)
+                    _StatusItem(status: item),
                 ],
               );
             },
@@ -73,7 +77,11 @@ class _StatusItem extends StatelessWidget {
           CircleAvatar(
             radius: 18,
             backgroundColor: AppColors.border,
-            child: Icon(_iconFor(status.category), size: 18, color: AppColors.navy),
+            child: Icon(
+              _iconFor(status.category),
+              size: 18,
+              color: AppColors.navy,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -94,7 +102,10 @@ class _StatusItem extends StatelessWidget {
                 // TODO(rust): trocar pelo status real retornado pela API
                 Text(
                   status.answered ? 'Answered' : 'Not yet answered',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSubtle),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSubtle,
+                  ),
                 ),
               ],
             ),
@@ -106,11 +117,11 @@ class _StatusItem extends StatelessWidget {
 }
 
 IconData _iconFor(CheckInCategory category) => switch (category) {
-      CheckInCategory.sleep => Icons.bedtime_outlined,
-      CheckInCategory.mood => Icons.sentiment_satisfied_alt_outlined,
-      CheckInCategory.stress => Icons.monitor_heart_outlined,
-      CheckInCategory.pain => Icons.bolt_outlined,
-      CheckInCategory.hydration => Icons.water_drop_outlined,
-      CheckInCategory.exercise => Icons.fitness_center_outlined,
-      CheckInCategory.symptoms => Icons.thermostat_outlined,
-    };
+  CheckInCategory.sleep => Icons.bedtime_outlined,
+  CheckInCategory.mood => Icons.sentiment_satisfied_alt_outlined,
+  CheckInCategory.stress => Icons.monitor_heart_outlined,
+  CheckInCategory.pain => Icons.bolt_outlined,
+  CheckInCategory.hydration => Icons.water_drop_outlined,
+  CheckInCategory.exercise => Icons.fitness_center_outlined,
+  CheckInCategory.symptoms => Icons.thermostat_outlined,
+};

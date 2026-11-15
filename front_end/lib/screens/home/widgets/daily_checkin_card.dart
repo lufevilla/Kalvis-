@@ -4,14 +4,9 @@ import 'package:front_end/core/app_colors.dart';
 import 'surface_card.dart';
 
 class DailyCheckInCard extends StatelessWidget {
-  const DailyCheckInCard({
-    super.key,
-    required this.onStartCheckIn,
-    required this.onAnswerByVoice,
-  });
+  const DailyCheckInCard({super.key, required this.onStartCheckIn});
 
   final VoidCallback onStartCheckIn;
-  final VoidCallback onAnswerByVoice;
 
   @override
   Widget build(BuildContext context) {
@@ -60,19 +55,13 @@ class DailyCheckInCard extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.navy,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-              OutlinedButton.icon(
-                onPressed: onAnswerByVoice,
-                icon: const Icon(Icons.mic_none, size: 18),
-                label: const Text('Answer by voice'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.navy,
-                  side: const BorderSide(color: AppColors.navy),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
             ],

@@ -1,0 +1,12 @@
+{
+  "id": "DST01",
+  "title": "Hazard: Distance From Earth",
+  "version": "1.0",
+  "source": "NASA | https://www.nasa.gov/hrp/hazard-distance-from-earth/",
+  "approved": true,
+  "text": "Em missões a Marte, o atraso de comunicação pode chegar a 20 minutos em cada sentido. A tripulação precisa lidar com emergências médicas e falhas com suporte mínimo da Terra.",
+  "category": "operations",
+  "source_url": "https://www.nasa.gov/hrp/hazard-distance-from-earth/",
+  "document_type": "nasa_hazard",
+  "clinical_protocol_approved": false
+}

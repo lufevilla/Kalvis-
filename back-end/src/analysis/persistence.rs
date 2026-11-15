@@ -74,7 +74,7 @@ impl CriterioAlteracao {
 }
 
 /// Configuração da avaliação de persistência.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct PersistenceConfig {
     /// Duração de cada janela em segundos. `<= 0` trata cada amostra como
     /// uma janela (comportamento original). Com duração definida, as
@@ -149,25 +149,30 @@ pub fn janelas_da_serie(
     if janela_segundos <= 0 {
         return serie.iter().map(|&(_, v)| criterio.atende(v)).collect();
     }
-
-    let Some(&primeiro) = serie.first().map(|(ts, _)| ts) else {
+    let Some(&(primeiro, _)) = serie.first() else {
         return Vec::new();
     };
 
-    let mut janelas: Vec<Vec<f64>> = Vec::new();
+    let mut janelas = Vec::new();
+    let mut atual: Option<(i64, bool)> = None;
     for &(ts, v) in serie {
-        let indice = ((ts - primeiro).num_seconds() / janela_segundos).max(0) as usize;
-        if indice >= janelas.len() {
-            janelas.resize(indice + 1, Vec::new());
+        let idx = (ts - primeiro).num_seconds() / janela_segundos;
+        match &mut atual {
+            Some((i, ok)) if *i == idx => *ok &= criterio.atende(v),
+            _ => {
+                if let Some((_, ok)) = atual.take() {
+                    janelas.push(ok);
+                }
+                atual = Some((idx, criterio.atende(v)));
+            }
         }
-        janelas[indice].push(v);
     }
-
+    if let Some((_, ok)) = atual {
+        janelas.push(ok);
+    }
     janelas
-        .into_iter()
-        .map(|valores| valores.iter().all(|&v| criterio.atende(v)))
-        .collect()
 }
+
 
 // ============================================================
 // PERSISTÊNCIA COM REPOSITÓRIO (BUSCA OS PRÓPRIOS DADOS)

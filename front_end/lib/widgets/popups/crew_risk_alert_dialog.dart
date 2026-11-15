@@ -87,7 +87,9 @@ class CrewRiskAlertDialog extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.navy,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 child: const Text('Entendido'),
               ),

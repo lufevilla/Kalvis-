@@ -595,8 +595,11 @@ impl ProcessamentoAvaliacao {
         let resultado = calculate_environmental_exposure_de_repositorio(
             self.measurements.as_ref(),
             astronauta_id,
+            None, // inicio_utc
+            None, // fim_utc
             &limiares,
             self.protocolo.exposicao.lacuna_maxima_segundos,
+            Utc::now(),
         )
         .await
         .ok()?;

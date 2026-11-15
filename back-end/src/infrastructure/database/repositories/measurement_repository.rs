@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use sqlx::SqlitePool;
 
+use crate::application::historical_analysis::get_historical_data::ParametrosAvaliacao;
 use crate::domain::entities::measurement_entity::{
     AmbienteNave, BaselineFisiologico, ExameClinico, PresencaModulo, RegistroDiario,
     TelemetriaFisiologica,
@@ -42,6 +43,10 @@ pub struct SqliteMeasurementRepository {
 impl SqliteMeasurementRepository {
     pub fn new(pool: SqlitePool) -> Self {
         Self { pool }
+    }
+
+    pub fn pool(&self) -> &SqlitePool {
+        &self.pool
     }
 }
 
@@ -326,6 +331,44 @@ impl MeasurementRepository for SqliteMeasurementRepository {
         .bind(id)
         .fetch_optional(&self.pool)
         .await
+    }
+
+    /// Busca o registro diário de um astronauta para uma data específica.
+    async fn get_daily_log(&self, astronauta_id: &str, data: &str) -> Result<Option<RegistroDiario>, sqlx::Error> {
+        sqlx::query_as::<_, RegistroDiario>(
+            r#"
+            SELECT
+                id,
+                astronauta_id,
+                data_registro,
+                horas_sono_total,
+                qualidade_sono_score,
+                exercicio_resistencia_min,
+                exercicio_aerobico_min,
+                ingestao_agua_ml,
+                calorias_consumidas,
+                score_teste_cognitivo,
+                nivel_estresse_subjetivo,
+                humor_score,
+                fadiga_score,
+                updated_at,
+                deleted_at
+            FROM registros_diarios
+            WHERE astronauta_id = ?1
+              AND data_registro = ?2
+              AND deleted_at IS NULL
+            "#,
+        )
+        .bind(astronauta_id)
+        .bind(data)
+        .fetch_optional(&self.pool)
+        .await
+    }
+
+    /// Busca os parâmetros de avaliação para uma missão.
+    async fn get_parametros_avaliacao(&self, missao_id: &str) -> Result<Option<ParametrosAvaliacao>, sqlx::Error> {
+        // Retorna parâmetros padrão por enquanto (em uma implementação real, buscaria do banco)
+        Ok(Some(ParametrosAvaliacao::default()))
     }
 
     /// Query 1.9

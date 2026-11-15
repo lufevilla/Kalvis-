@@ -98,14 +98,15 @@ async fn main() -> anyhow::Result<()> {
         settings.coleta.modulo_id.clone(),
     );
     let deps = Arc::new(DependenciasMotor {
-        coleta,
         avaliacao: processamento,
         copiloto,
+        measurements: measurements.clone(), // repositório de medições
         astronauta_id: settings.coleta.astronauta_id.clone(),
         missao_id: settings.coleta.missao_id.clone(),
         intervalo_avaliacao: settings.analise.intervalo_avaliacao,
         intervalo_coleta: settings.coleta.intervalo,
     });
+
 
     tracing::info!(
         "ciclo de coleta: {} s | intervalo de avaliação: {} s",
@@ -114,6 +115,13 @@ async fn main() -> anyhow::Result<()> {
     );
 
     start_monitoring(sensor, deps).await;
+
+    let app = interfaces::http::rotas(measurements.clone());
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
+        .await?;
+
+    axum::serve(listener, app).await?;
     Ok(())
 }
 

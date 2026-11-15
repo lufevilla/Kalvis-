@@ -5,8 +5,11 @@ edition = "2024"
 
 [dependencies]
 
+# Shared library
+rust_lib_front_end = { path = "../space-health-lib" }
+
 # HTTP / API
-axum = "0.8"
+axum = { version = "0.8", features = ["ws"] }
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 
 # Runtime assíncrono

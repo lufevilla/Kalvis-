@@ -1,0 +1,12 @@
+{
+  "id": "ENV01",
+  "title": "Hazard: Hostile/Closed Environments",
+  "version": "1.0",
+  "source": "NASA | https://www.nasa.gov/hrp/hazard-hostile-closed-environments/",
+  "approved": true,
+  "text": "Em ambientes fechados os hormônios de estresse podem subir e o sistema imune pode se alterar. Temperatura, pressão, iluminação e ruído afetam o dia a dia da tripulação. Mais pesquisas são necessárias para saber se essas mudanças representam riscos sérios.",
+  "category": "environment",
+  "source_url": "https://www.nasa.gov/hrp/hazard-hostile-closed-environments/",
+  "document_type": "nasa_hazard",
+  "clinical_protocol_approved": false
+}

@@ -21,6 +21,9 @@ pub enum AppErro {
 
     #[error("orientação por IA indisponível: {0}")]
     IaIndisponivel(String),
+
+    #[error("não encontrado: {0}")]
+    NaoEncontrado(String),
 }
 
 pub type AppResultado<T> = Result<T, AppErro>;

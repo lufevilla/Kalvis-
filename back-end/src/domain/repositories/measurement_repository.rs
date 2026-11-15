@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
+use sqlx::{FromRow, SqlitePool};
 
+use crate::application::historical_analysis::get_historical_data::ParametrosAvaliacao;
 use crate::domain::entities::measurement_entity::{
     AmbienteNave, BaselineFisiologico, ExameClinico, PresencaModulo, RegistroDiario,
     TelemetriaFisiologica,
@@ -204,6 +205,9 @@ pub trait MeasurementRepository: Send + Sync {
     /// Query 1.7 — busca um registro diário pelo `id`.
     async fn find_daily_log_by_id(&self, id: &str) -> Result<Option<RegistroDiario>, sqlx::Error>;
 
+    /// Busca o registro diário de um astronauta para uma data específica.
+    async fn get_daily_log(&self, astronauta_id: &str, data: &str) -> Result<Option<RegistroDiario>, sqlx::Error>;
+
     /// Query 1.9 — busca uma medição ambiental pelo `id`.
     async fn find_environment_by_id(&self, id: &str) -> Result<Option<AmbienteNave>, sqlx::Error>;
 
@@ -309,6 +313,9 @@ pub trait MeasurementRepository: Send + Sync {
         fim_utc: Option<&str>,
     ) -> Result<Vec<ResumoAmbientalModulo>, sqlx::Error>;
 
+    /// Busca os parâmetros de avaliação para uma missão.
+    async fn get_parametros_avaliacao(&self, missao_id: &str) -> Result<Option<ParametrosAvaliacao>, sqlx::Error>;
+
     async fn list_daily_logs(
         &self,
         astronauta_id: &str,
@@ -326,4 +333,7 @@ pub trait MeasurementRepository: Send + Sync {
         &self,
         astronauta_id: &str,
     ) -> Result<Option<PainelAtual>, sqlx::Error>;
+
+    /// Obtém o pool de conexão SQLite subjacente.
+    fn pool(&self) -> &SqlitePool;
 }

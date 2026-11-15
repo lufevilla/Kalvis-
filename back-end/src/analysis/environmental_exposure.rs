@@ -14,14 +14,14 @@ UNIDADES E LIMITAÇÃO (importante):
 - Os limiares (`EnvironmentalThresholds`) são CONFIGURÁVEIS pela camada de
   aplicação; nenhuma faixa clínica/operacional é inventada neste módulo.
 */
-
+use std::collections::HashSet;
 use chrono::{DateTime, Utc};
-
+use crate::domain::repositories::measurement_repository::MeasurementRepository;
 use crate::domain::entities::measurement_entity::{AmbienteNave, PresencaModulo};
-
+use super::repository::{LIMITE_PADRAO_SERIE, verificar_limite};
 use super::statistics::trapezoid;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct EnvironmentalThresholds {
     pub co2_ppm: f64,
     pub temperature_c: f64,
@@ -177,10 +177,9 @@ pub fn calculate_environmental_exposure(
     environment: &[AmbienteNave],
     thresholds: &EnvironmentalThresholds,
     max_gap_seconds: i64,
+    agora: DateTime<Utc>,
 ) -> EnvironmentalExposureResult {
     let mut result = EnvironmentalExposureResult::default();
-    let agora = Utc::now();
-
     let pressao_valida = thresholds.validar().is_ok();
 
     for stay in intervalos_de_presenca(presence, agora) {
@@ -303,45 +302,37 @@ pub fn calculate_environmental_exposure(
 // EXPOSIÇÃO COM REPOSITÓRIO (BUSCA OS PRÓPRIOS DADOS)
 // ============================================================
 
-use std::collections::HashSet;
-
-use crate::domain::repositories::measurement_repository::MeasurementRepository;
-
-use super::repository::LIMITE_PADRAO_SERIE;
-
-/// Calcula a exposição ambiental buscando do repositório as presenças do
-/// astronauta e as medições de cada módulo visitado.
 pub async fn calculate_environmental_exposure_de_repositorio(
     repo: &dyn MeasurementRepository,
     astronauta_id: &str,
+    inicio_utc: Option<&str>,
+    fim_utc: Option<&str>,
     thresholds: &EnvironmentalThresholds,
     max_gap_seconds: i64,
+    agora: DateTime<Utc>,
 ) -> Result<EnvironmentalExposureResult, sqlx::Error> {
     let presences = repo.list_presences(astronauta_id).await?;
 
-    let mut ambientes: Vec<AmbienteNave> = Vec::new();
+    let modulos: HashSet<&str> = presences
+        .iter()
+        .filter(|p| p.deleted_at.is_none())
+        .map(|p| p.modulo_id.as_str())
+        .collect();
 
-    let mut modulos: HashSet<&str> = HashSet::new();
-    for presenca in &presences {
-        modulos.insert(presenca.modulo_id.as_str());
-    }
-
+    let mut ambientes = Vec::new();
     for modulo_id in modulos {
+        // limite + 1 para detectar truncamento: falha em vez de truncar.
         let leituras = repo
-            .list_environment_by_module(modulo_id, None, None, LIMITE_PADRAO_SERIE, 0)
+            .list_environment_by_module(modulo_id, inicio_utc, fim_utc, LIMITE_PADRAO_SERIE + 1, 0)
             .await?;
-
+        verificar_limite(leituras.len())?;
         ambientes.extend(leituras);
     }
 
     Ok(calculate_environmental_exposure(
-        &presences,
-        &ambientes,
-        thresholds,
-        max_gap_seconds,
+        &presences, &ambientes, thresholds, max_gap_seconds, agora,
     ))
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -418,7 +409,7 @@ mod tests {
             ),
         ];
 
-        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600);
+        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600, Utc::now());
 
         assert!((r.co2_exposure_ppm_hours - 0.0).abs() < 1e-9);
         assert_eq!(r.co2_time_above_seconds, 0.0);
@@ -445,7 +436,7 @@ mod tests {
             ambiente("E2", Some(1500.0), None, None, None, "2025-01-15T09:00:00Z"),
         ];
 
-        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600);
+        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600, Utc::now());
 
         // Excesso médio (200 + 500)/2 = 350 ppm × 1 h.
         assert!((r.co2_exposure_ppm_hours - 350.0).abs() < 1e-9);
@@ -466,7 +457,7 @@ mod tests {
             ambiente("E2", Some(1100.0), None, None, None, "2025-01-15T09:00:00Z"),
         ];
 
-        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600);
+        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600, Utc::now());
 
         // Nenhuma leitura está acima, mas o trecho interpolado sim:
         // (1100-1000)/(1100-900) × 3600 = 1800 s.
@@ -501,7 +492,7 @@ mod tests {
             ),
         ];
 
-        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600);
+        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600, Utc::now());
 
         // Nenhum indicador tem as DUAS leituras → nada integrado.
         assert_eq!(r.co2_exposure_ppm_hours, 0.0);
@@ -529,7 +520,7 @@ mod tests {
             ambiente("E2", Some(1600.0), None, None, None, "2025-01-15T11:00:00Z"), // gap de 3 h
         ];
 
-        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600);
+        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600, Utc::now());
         assert_eq!(
             r.analyzed_seconds, 0.0,
             "lacuna maior que max_gap não integra"
@@ -571,7 +562,7 @@ mod tests {
             ),
         ];
 
-        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600);
+        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600, Utc::now());
 
         // Sem o merge, o par 09:00→10:00 seria contado nas duas presenças
         // (10800 s). Mescladas: apenas os pares 08→09 e 09→10 (7200 s).
@@ -593,7 +584,7 @@ mod tests {
             ambiente("E2", Some(800.0), None, None, None, "2025-01-15T09:00:00Z"),
         ];
 
-        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600);
+        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600, Utc::now());
         // MOD1 tem apenas o par 08:00→09:00 (3600 s); MOD2 não tem leituras
         // e NÃO herda o intervalo de MOD1 (módulos não são mesclados).
         assert_eq!(r.analyzed_seconds, 3600.0);
@@ -612,7 +603,7 @@ mod tests {
             ambiente("E3", None, Some(0.30), None, None, "2025-01-15T10:00:00Z"),
         ];
 
-        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600);
+        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600, Utc::now());
 
         // mSv/h × h: (0.10+0.30)/2 × 1 + (0.30+0.30)/2 × 1 = 0.50 mSv.
         assert!((r.radiation_dose_msv - 0.50).abs() < 1e-9);
@@ -631,7 +622,7 @@ mod tests {
             ambiente("E2", None, None, None, Some(106.0), "2025-01-15T09:00:00Z"),
         ];
 
-        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600);
+        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600, Utc::now());
 
         // Excesso: min 1.0 + max 1.0 → média 1.0 kPa × 1 h = 1.0 kPa·h.
         assert!((r.pressure_exposure_kpa_hours - 1.0).abs() < 1e-9);
@@ -653,18 +644,18 @@ mod tests {
             ambiente("E1", Some(800.0), None, None, None, "2025-01-15T08:00:00Z"),
             ambiente("E2", Some(800.0), None, None, None, "2025-01-15T09:00:00Z"),
         ];
-        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600);
+        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600, Utc::now());
         assert_eq!(r.analyzed_seconds, 0.0);
 
         // Timestamp inválido na presença → ignorada.
         let presences = vec![presenca("P1", "data-invalida", None)];
-        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600);
+        let r = calculate_environmental_exposure(&presences, &env, &limiares(), 3600, Utc::now());
         assert_eq!(r.analyzed_seconds, 0.0);
 
         // Presença removida (deleted_at) → ignorada.
         let mut p = presenca("P1", "2025-01-15T08:00:00Z", Some("2025-01-15T09:00:00Z"));
         p.deleted_at = Some("2025-01-16T00:00:00Z".to_string());
-        let r = calculate_environmental_exposure(&[p], &env, &limiares(), 3600);
+        let r = calculate_environmental_exposure(&[p], &env, &limiares(), 3600, Utc::now());
         assert_eq!(r.analyzed_seconds, 0.0);
 
         // Leituras de outro módulo → não consideradas.
@@ -675,7 +666,7 @@ mod tests {
             "2025-01-15T08:00:00Z",
             Some("2025-01-15T09:00:00Z"),
         )];
-        let r = calculate_environmental_exposure(&presences, &[e1], &limiares(), 3600);
+        let r = calculate_environmental_exposure(&presences, &[e1], &limiares(), 3600, Utc::now());
         assert_eq!(r.analyzed_seconds, 0.0);
     }
 
