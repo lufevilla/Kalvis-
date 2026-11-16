@@ -11,6 +11,7 @@ class AiDiagnosisCard extends StatelessWidget {
     super.key,
     this.findings = mockDiagnosisFindings,
     this.recommendations = mockDiagnosisRecommendations,
+    this.aiMessage,
     this.onListen,
     this.onGoToChat,
   });
@@ -18,6 +19,7 @@ class AiDiagnosisCard extends StatelessWidget {
   /// MOCKs por padrão — passe os dados reais quando a IA estiver integrada.
   final List<DiagnosisFindingData> findings;
   final List<String> recommendations;
+  final String? aiMessage;
 
   final VoidCallback? onListen;
   final VoidCallback? onGoToChat;
@@ -37,6 +39,17 @@ class AiDiagnosisCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
+          if (aiMessage != null && aiMessage!.isNotEmpty) ...[
+            Text(
+              aiMessage!,
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.4,
+                color: AppColors.textMuted,
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(14),
@@ -63,7 +76,6 @@ class AiDiagnosisCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          // TODO: recomendações reais geradas pela IA a partir do diagnóstico
           for (final recommendation in recommendations)
             _BulletLine(text: recommendation),
           const SizedBox(height: 20),

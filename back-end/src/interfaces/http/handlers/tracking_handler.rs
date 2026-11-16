@@ -1,15 +1,15 @@
-use axum::{extract::{State, Query}, Json};
-use axum::debug_handler;
+use axum::{extract::{State, Query}, Json, debug_handler};
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::domain::repositories::measurement_repository::{MeasurementRepository, PainelAtual, ResumoAmbientalModulo};
 use crate::interfaces::http::dto::tracking_dto::TrackingDataResponse;
 use crate::shared::errors::{AppErro, AppResultado};
+use crate::infrastructure::database::repositories::measurement_repository::SqliteMeasurementRepository;
 
 #[debug_handler]
-pub async fn get_tracking_data<M: MeasurementRepository>(
-    State(measurements): State<Arc<M>>,
+pub async fn get_tracking_data(
+    State(measurements): State<Arc<SqliteMeasurementRepository>>,
     Query(params): Query<HashMap<String, String>>,
 ) -> AppResultado<Json<TrackingDataResponse>> {
     let astronauta_id = params.get("astronauta_id")

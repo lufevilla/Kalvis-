@@ -15,7 +15,10 @@ pub struct Params {
     astronauta_id: Option<String>,
 }
 
-pub fn rotas() -> Router {
+use crate::infrastructure::database::repositories::measurement_repository::SqliteMeasurementRepository;
+use std::sync::Arc;
+
+pub fn rotas() -> Router<Arc<SqliteMeasurementRepository>> {
     Router::new().route("/ws/analises", get(ws))
 }
 

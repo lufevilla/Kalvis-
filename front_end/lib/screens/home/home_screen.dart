@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:front_end/core/models/checkin.dart';
+import 'package:front_end/core/services/tracking_database_service.dart';
 import 'package:front_end/mocks/chekin_popup_mocks.dart';
 import 'package:front_end/mocks/menu_mocks.dart';
 import 'package:front_end/widgets/checkin/checkin_entry_card.dart';
 import 'package:front_end/widgets/popups/checkin_popup.dart';
 
 /// Conteúdo da Home. Sidebar e header vêm do AppShell, não daqui.
-/// Dados mockados por enquanto (ver lib/mocks/).
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -20,12 +20,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   int _answeredCount = 0;
 
-  void _onAnswersSubmitted(List<CheckInAnswer> answers) {
-    // TODO(rust): enviar as respostas para o backend, ex.: POST /checkins/today
-    // Sugestão de payload: answers.map((a) => {'key': a.category.name, 'selected': a.selected})
+  Future<void> _onAnswersSubmitted(List<CheckInAnswer> answers) async {
     setState(() {
       _answeredCount = answers.where((a) => a.isAnswered).length;
     });
+    await TrackingDatabaseService().saveCheckin(answers);
   }
 
   @override
@@ -35,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
         CheckInEntryCard(
           answeredCount: _answeredCount,
           totalCount: mockCheckInQuestions.length,
-          onAnswersSubmitted: _onAnswersSubmitted,
+          onAnswersSubmitted: (answers) => _onAnswersSubmitted(answers),
         ),
       ],
     );

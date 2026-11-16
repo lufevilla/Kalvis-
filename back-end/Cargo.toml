@@ -3,13 +3,18 @@ name = "back-end"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+path = "src/lib.rs"
+name = "back_end_lib"
+
+[[bin]]
+name = "back-end"
+path = "src/main.rs"
+
 [dependencies]
 
-# Shared library
-rust_lib_front_end = { path = "../space-health-lib" }
-
 # HTTP / API
-axum = { version = "0.8", features = ["ws"] }
+axum = { version = "0.8", features = ["ws", "macros"] }
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 
 # Runtime assíncrono

@@ -39,10 +39,9 @@ dependencies:
   web_socket_channel: ^3.0.3
   shared_preferences: ^2.5.6
   http: ^1.2.0
-  flutter_rust_bridge: 2.13.0
-  rust_lib_front_end:
-    path: rust_builder
   path_provider: ^2.1.0
+  sqflite: ^2.3.0
+  sqflite_common_ffi: ^2.3.0
 
 dev_dependencies:
   flutter_test:

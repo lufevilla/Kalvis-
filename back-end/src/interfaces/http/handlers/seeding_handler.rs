@@ -1,15 +1,16 @@
-use axum::{extract::State, Json, response::IntoResponse};
+use axum::{extract::State, Json, response::IntoResponse, debug_handler};
 use sqlx::SqlitePool;
 use serde::Serialize;
-use crate::domain::repositories::measurement_repository::MeasurementRepository;
+use crate::infrastructure::database::repositories::measurement_repository::SqliteMeasurementRepository;
 
 #[derive(Serialize)]
 pub struct SeedingResponse {
     message: String,
 }
 
-pub async fn seed_data<M: MeasurementRepository>(
-    State(repo): State<std::sync::Arc<M>>,
+#[debug_handler]
+pub async fn seed_data(
+    State(repo): State<std::sync::Arc<SqliteMeasurementRepository>>,
 ) -> impl IntoResponse {
     let pool = repo.pool();
     

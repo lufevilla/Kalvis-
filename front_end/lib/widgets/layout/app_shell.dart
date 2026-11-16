@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
+import '../../core/alert_detect/detecter.dart';
+import 'package:front_end/screens/tracking/tracking_screen.dart';
 import 'package:front_end/widgets/app_header.dart';
 import 'package:front_end/widgets/app_sidebar.dart';
 
@@ -12,12 +14,14 @@ class AppShell extends StatefulWidget {
     required this.pages,
     required this.dateLabel,
     this.initialLabel = 'Home',
+    this.detecter,
   });
 
   /// Tela de cada item, pela label. Ex.: {'Home': HomeScreen(...)}
   final Map<String, Widget> pages;
   final String dateLabel;
   final String initialLabel;
+  final dynamic detecter;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -25,16 +29,30 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   late String _activeLabel;
+  AlertaDetectado? _ultimoAlerta;
 
   @override
   void initState() {
     super.initState();
     _activeLabel = widget.initialLabel;
+    if (widget.detecter != null) {
+      final d = widget.detecter as Detecter;
+      d.alertas.listen((a) {
+        if (mounted) setState(() => _ultimoAlerta = a);
+      });
+      d.respostasRag.listen((a) {
+        if (mounted) setState(() => _ultimoAlerta = a);
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final page = widget.pages[_activeLabel] ?? const _ComingSoon();
+    Widget? page = widget.pages[_activeLabel];
+    if (_activeLabel == 'Tracking') {
+      page = _ultimoAlerta != null ? TrackingScreen(alerta: _ultimoAlerta) : const TrackingScreen();
+    }
+    page ??= const _ComingSoon();
 
     return Scaffold(
       backgroundColor: AppColors.background,

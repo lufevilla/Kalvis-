@@ -6,7 +6,9 @@ use std::sync::{Arc, Mutex, OnceLock};
 use serde_json::{Value, json};
 use tokio::sync::broadcast;
 
-use crate::analysis::engine::{Episodio, IndicadorAvaliado, Motivo, ResultadoAnalise};
+pub use crate::application::historical_analysis::get_historical_data::{
+    Episodio, IndicadorAvaliado, Motivo, ResultadoAnalise, AnaliseErro,
+};
 use crate::analysis::variation::{Direcao, NivelVariacao};
 
 const CAPACIDADE: usize = 512;

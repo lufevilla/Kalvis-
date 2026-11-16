@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:front_end/core/alert_detect/detecter.dart';
 import 'package:front_end/core/app_colors.dart';
 import 'package:front_end/core/models/tracking.dart';
-import 'package:front_end/core/services/tracking_api_service.dart' show TrackingApiService;
-import 'package:front_end/mocks/tracking_mocks.dart';
+import 'package:front_end/core/services/tracking_database_service.dart';
 import 'package:front_end/widgets/responsive_grid.dart';
 import 'package:front_end/widgets/tracking_metric_card.dart';
-import 'package:path_provider/path_provider.dart';
 
 /// Conteúdo da tela Tracking. Sidebar e header vêm do AppShell.
-/// Dados vêm do backend via TrackingApiService.
+/// Dados vêm do banco SQLite via TrackingDatabaseService.
 class TrackingScreen extends StatefulWidget {
-  const TrackingScreen({super.key});
+  const TrackingScreen({super.key, this.alerta});
+
+  final AlertaDetectado? alerta;
 
   @override
   State<TrackingScreen> createState() => _TrackingScreenState();
 }
 
 class _TrackingScreenState extends State<TrackingScreen> {
-  final _api = TrackingApiService();
+  final _dbService = TrackingDatabaseService();
   bool _isLoading = true;
   String? _error;
   TrackingData? _data;
@@ -25,38 +26,49 @@ class _TrackingScreenState extends State<TrackingScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _initializeAndLoad();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _initializeAndLoad() async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
     try {
-      _data = await _api.fetchTrackingData();
+      await TrackingDatabaseService().initialize();
+      TrackingDatabaseService().dataStream.listen((data) {
+        if (mounted) {
+          setState(() {
+            _data = data;
+          });
+        }
+      });
+      final data = TrackingDatabaseService().currentData;
+      if (data != null) {
+        setState(() => _data = data);
+      }
     } catch (e) {
-      _error = 'Erro ao carregar dados: $e';
-      // Fallback to mocks on error
-      _data = TrackingData(
-        crewVitals: mockCrewVitals
-            .map((m) => TrackingVital.fromTrackingMetric(m))
-            .toList(),
-        environmentMetrics: mockEnvironmentMetrics
-            .map((m) => TrackingEnvironment.fromTrackingMetric(m))
-            .toList(),
-        lastUpdate: DateTime.now().toIso8601String(),
-        astronautId: 'AST001',
-      );
+      setState(() => _error = 'Erro ao inicializar: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
+  void dispose() {
+    TrackingDatabaseService().dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
-      onRefresh: _loadData,
+      onRefresh: () async {
+        final data = await TrackingDatabaseService().fetchTrackingData();
+        if (data != null && mounted) {
+          setState(() => _data = data);
+        }
+      },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(24),
@@ -70,43 +82,76 @@ class _TrackingScreenState extends State<TrackingScreen> {
                       Text(_error!, style: const TextStyle(color: Colors.red)),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: _loadData,
+                        onPressed: _initializeAndLoad,
                         child: const Text('Tentar novamente'),
                       ),
                     ],
                   )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _SectionTitle('Monitoramento Fisiológico (Crew Vitals)'),
-                      const SizedBox(height: 16),
-                      ResponsiveGrid(
+                : _data == null
+                    ? const Center(child: Text('Nenhum dado disponível'))
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          for (final vital in _data!.crewVitals)
-                            TrackingMetricCard(metric: vital.toTrackingMetric()),
-                        ],
-                      ),
-                      const SizedBox(height: 32),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _SectionTitle('Ambiente & Espaço (Módulo Orbital)'),
-                          if (_data!.currentModule != null)
-                            Chip(
-                              label: Text(_data!.currentModule!),
-                              backgroundColor: AppColors.navy.withOpacity(0.1),
+                          if (widget.alerta != null) ...[
+                            _SectionTitle('Sintomas/Alertas (IA)'),
+                            const SizedBox(height: 8),
+                            Card(
+                              color: widget.alerta!.classificacao == Classificacao.emergencia
+                                  ? Colors.red.shade50
+                                  : Colors.orange.shade50,
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Episódio: ${widget.alerta!.episodio} • Nível: ${widget.alerta!.nivelFinal}',
+                                      style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.navy),
+                                    ),
+                                    if (widget.alerta!.mensagemIa != null && widget.alerta!.mensagemIa!.isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      Text(widget.alerta!.mensagemIa!, style: const TextStyle(color: AppColors.textMuted)),
+                                    ],
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Motivos: ${widget.alerta!.motivos.map((m) => m.codigo).join(', ')}',
+                                      style: const TextStyle(fontSize: 12, color: AppColors.textSubtle),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
+                            const SizedBox(height: 24),
+                          ],
+                          _SectionTitle('Monitoramento Fisiológico (Crew Vitals)'),
+                          const SizedBox(height: 16),
+                          ResponsiveGrid(
+                            children: [
+                              for (final vital in _data!.crewVitals)
+                                TrackingMetricCard(metric: vital.toTrackingMetric()),
+                            ],
+                          ),
+                          const SizedBox(height: 32),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _SectionTitle('Ambiente & Espaço (Módulo Orbital)'),
+                              if (_data!.currentModule != null)
+                                Chip(
+                                  label: Text(_data!.currentModule!),
+                                  backgroundColor: AppColors.navy.withOpacity(0.1),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          ResponsiveGrid(
+                            children: [
+                              for (final env in _data!.environmentMetrics)
+                                TrackingMetricCard(metric: env.toTrackingMetric()),
+                            ],
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      ResponsiveGrid(
-                        children: [
-                          for (final env in _data!.environmentMetrics)
-                            TrackingMetricCard(metric: env.toTrackingMetric()),
-                        ],
-                      ),
-                    ],
-                  ),
       ),
     );
   }

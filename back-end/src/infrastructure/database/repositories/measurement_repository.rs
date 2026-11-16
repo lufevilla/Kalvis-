@@ -52,6 +52,10 @@ impl SqliteMeasurementRepository {
 
 #[async_trait]
 impl MeasurementRepository for SqliteMeasurementRepository {
+    fn pool(&self) -> &SqlitePool {
+        &self.pool
+    }
+
     /// Escrita — INSERT de telemetria fisiológica.
     async fn save_telemetria(&self, telemetria: &TelemetriaFisiologica) -> Result<(), sqlx::Error> {
         sqlx::query(
@@ -366,7 +370,7 @@ impl MeasurementRepository for SqliteMeasurementRepository {
     }
 
     /// Busca os parâmetros de avaliação para uma missão.
-    async fn get_parametros_avaliacao(&self, missao_id: &str) -> Result<Option<ParametrosAvaliacao>, sqlx::Error> {
+    async fn get_parametros_avaliacao(&self, _missao_id: &str) -> Result<Option<ParametrosAvaliacao>, sqlx::Error> {
         // Retorna parâmetros padrão por enquanto (em uma implementação real, buscaria do banco)
         Ok(Some(ParametrosAvaliacao::default()))
     }

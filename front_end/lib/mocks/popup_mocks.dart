@@ -127,13 +127,13 @@ const mockDiagnosisFindings = <DiagnosisFindingData>[
   DiagnosisFindingData(
     icon: Icons.favorite_border,
     title: 'BPM acima do normal',
-    subtitle: 'BPM acima do normal',
+    subtitle: 'Relaxe, converse com o médico da tripulação e se acalme',
     isAlert: true,
   ),
   DiagnosisFindingData(
     icon: Icons.water_drop_outlined,
     title: 'Hidratação baixa',
-    subtitle: 'Hidratação abaixo do recomendado',
+    subtitle: 'Hidratação abaixo do recomendado, busque tomar mais água',
   ),
 ];
 

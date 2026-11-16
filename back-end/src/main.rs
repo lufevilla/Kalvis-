@@ -2,7 +2,7 @@
 PONTO DE ENTRADA DO SPACE HEALTH.
 
 Fio condutor (tudo configurável via ambiente/`.env` — ver `config::settings`):
- 1. carrega configurações e inicializa os logs;
+1. carrega configurações e inicializa os logs;
  2. inicializa o banco (migrations) e garante os registros base
     (astronauta, missão, participação e módulo — exigidos pelas FKs);
  3. monta os repositórios, o protocolo de avaliação e o cliente
@@ -12,21 +12,30 @@ Fio condutor (tudo configurável via ambiente/`.env` — ver `config::settings`)
     background, sem sobreposição.
 */
 
-use std::sync::Arc;
+// Ponto de entrada limpo: declare cada módulo APENAS UMA VEZ no topo
+pub mod interfaces;
+pub mod domain;
+pub mod infrastructure;
+pub mod analysis;
+pub mod shared;
+pub mod application;
+pub mod config;
 
+use std::sync::Arc;
 use anyhow::{Context, anyhow};
 use sqlx::SqlitePool;
 
-use back_end::application::collection::collect_measurement::ColetaMedicao;
-use back_end::application::copilot::generate_guidance::GeradorOrientacao;
-use back_end::application::evaluation::process_assessment::ProcessamentoAvaliacao;
-use back_end::config::settings::Settings;
-use back_end::infrastructure::database::repositories::alert_repository::SqliteAlertRepository;
-use back_end::infrastructure::database::repositories::evaluation_repository::SqliteEvaluationRepository;
-use back_end::infrastructure::database::repositories::measurement_repository::SqliteMeasurementRepository;
-use back_end::infrastructure::database::sqlite_initialization::init_db;
-use back_end::infrastructure::sensors::motor::{DependenciasMotor, start_monitoring};
-use back_end::infrastructure::sensors::sensor_adapter::SensorAdapter;
+use crate::application::collection::collect_measurement::ColetaMedicao;
+use crate::application::copilot::generate_guidance::GeradorOrientacao;
+use crate::application::evaluation::process_assessment::ProcessamentoAvaliacao;
+
+use crate::config::settings::Settings;
+use crate::infrastructure::database::repositories::alert_repository::SqliteAlertRepository;
+use crate::infrastructure::database::repositories::evaluation_repository::SqliteEvaluationRepository;
+use crate::infrastructure::database::repositories::measurement_repository::SqliteMeasurementRepository;
+use crate::infrastructure::database::sqlite_initialization::init_db;
+use crate::infrastructure::sensors::motor::{DependenciasMotor, start_monitoring};
+use crate::infrastructure::sensors::sensor_adapter::SensorAdapter;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -51,13 +60,11 @@ async fn main() -> anyhow::Result<()> {
     garantir_registros_base(&pool, &settings).await?;
 
     // ===== 3. Repositórios, protocolo e IA copiloto =====
-    let measurements: Arc<
-        dyn back_end::domain::repositories::measurement_repository::MeasurementRepository,
-    > = Arc::new(SqliteMeasurementRepository::new(pool.clone()));
+    let measurements: Arc<SqliteMeasurementRepository> = Arc::new(SqliteMeasurementRepository::new(pool.clone()));
     let evaluations: Arc<
-        dyn back_end::domain::repositories::evaluation_repository::EvaluationRepository,
+        dyn crate::domain::repositories::evaluation_repository::EvaluationRepository,
     > = Arc::new(SqliteEvaluationRepository::new(pool.clone()));
-    let alerts: Arc<dyn back_end::domain::repositories::alert_repository::AlertRepository> =
+    let alerts: Arc<dyn crate::domain::repositories::alert_repository::AlertRepository> =
         Arc::new(SqliteAlertRepository::new(pool.clone()));
 
     let coleta = Arc::new(ColetaMedicao::novo(measurements.clone()));
@@ -100,13 +107,12 @@ async fn main() -> anyhow::Result<()> {
     let deps = Arc::new(DependenciasMotor {
         avaliacao: processamento,
         copiloto,
-        measurements: measurements.clone(), // repositório de medições
+        measurements: measurements.clone(),
         astronauta_id: settings.coleta.astronauta_id.clone(),
         missao_id: settings.coleta.missao_id.clone(),
         intervalo_avaliacao: settings.analise.intervalo_avaliacao,
         intervalo_coleta: settings.coleta.intervalo,
     });
-
 
     tracing::info!(
         "ciclo de coleta: {} s | intervalo de avaliação: {} s",
@@ -116,20 +122,26 @@ async fn main() -> anyhow::Result<()> {
 
     start_monitoring(sensor, deps).await;
 
-    let app = interfaces::http::rotas(measurements.clone());
+// ===== 5. Servidor HTTP (Axum 0.8) =====
+    let app = interfaces::http::rotas(measurements.clone())
+        .with_state(measurements.clone());
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
-        .await?;
+        .await
+        .context("falha ao ligar o listener na porta 3000")?;
+        
+    tracing::info!("Servidor rodando em http://0.0.0.0:3000");
 
-    axum::serve(listener, app).await?;
+    axum::serve(listener, app)
+        .await
+        .context("erro ao rodar o servidor HTTP")?;
+
     Ok(())
 }
 
 /// Garante astronauta, missão, participação e módulo de coleta (FKs exigem).
 /// `INSERT OR IGNORE`: registros já existentes NUNCA são sobrescritos.
 async fn garantir_registros_base(pool: &SqlitePool, settings: &Settings) -> anyhow::Result<()> {
-    // Valores de preenchimento dos registros simulados (jamais sobrescrevem
-    // dados existentes — a ausência de alteração é a semântica do OR IGNORE).
     const NOME_SIMULADO: &str = "Astronauta simulado";
     const NASCIMENTO_SIMULADO: &str = "1990-01-01";
     const MISSAO_SIMULADA: &str = "Missão de monitoramento";

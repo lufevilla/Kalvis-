@@ -4,12 +4,12 @@ pub mod routes;
 
 use axum::Router;
 use std::sync::Arc;
-use crate::domain::repositories::measurement_repository::MeasurementRepository;
+use crate::infrastructure::database::repositories::measurement_repository::SqliteMeasurementRepository;
 
-pub fn rotas<M: MeasurementRepository + 'static>(
-    measurements: Arc<M>,
-) -> Router<Arc<M>> {
-    Router::<Arc<M>>::new()
+pub fn rotas(
+    measurements: Arc<SqliteMeasurementRepository>,
+) -> Router<Arc<SqliteMeasurementRepository>> {
+    Router::new()
         .merge(routes::analises_ws::rotas())
         .merge(routes::seeding::rotas())
         .merge(routes::tracking::rotas())

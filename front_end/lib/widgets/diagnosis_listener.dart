@@ -45,6 +45,7 @@ class _DiagnosisListenerState extends State<DiagnosisListener> {
           child: AiDiagnosisCard(
             findings: v.findings,
             recommendations: v.recommendations,
+            aiMessage: (a.raw['mensagem_ia'] as String?) ?? v.textoFala,
             onListen: () {
               /* tts.speak(v.textoFala) */
             },
